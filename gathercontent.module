@@ -1,0 +1,153 @@
+<?php
+
+function gathercontent_menu() {
+  $items = array();
+
+  $path = drupal_get_path('module', 'gathercontent').'/includes';
+
+  $items['admin/config/content/gathercontent'] = array(
+    'title' => 'GatherContent',
+    'description' => 'Import GatherContent pages to your Drupal CMS',
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array('administer gathercontent'),
+    'file' => 'project.inc',
+    'file path' => $path,
+    'page arguments' => array('gathercontent_project_form'),
+  );
+  $items['admin/config/content/gathercontent/login'] = array(
+    'title' => 'GatherContent',
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array('administer gathercontent'),
+    'file' => 'login.inc',
+    'file path' => $path,
+    'type' => MENU_CALLBACK,
+    'page arguments' => array('gathercontent_login_form'),
+  );
+  $items['admin/config/content/gathercontent/pages'] = array(
+    'title' => 'GatherContent',
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array('administer gathercontent'),
+    'file' => 'pages.inc',
+    'file path' => $path,
+    'type' => MENU_CALLBACK,
+    'page arguments' => array('gathercontent_pages_form'),
+  );
+  $items['admin/config/content/gathercontent/pages_import'] = array(
+    'title' => 'GatherContent',
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array('administer gathercontent'),
+    'file' => 'pages_import.inc',
+    'file path' => $path,
+    'type' => MENU_CALLBACK,
+    'page arguments' => array('gathercontent_pages_import_form'),
+  );
+  $items['admin/config/content/gathercontent/media'] = array(
+    'title' => 'GatherContent',
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array('administer gathercontent'),
+    'file' => 'media.inc',
+    'file path' => $path,
+    'type' => MENU_CALLBACK,
+    'page arguments' => array('gathercontent_media_form'),
+  );
+  $items['admin/config/content/gathercontent/finished'] = array(
+    'title' => 'GatherContent',
+    'page callback' => 'drupal_get_form',
+    'access arguments' => array('administer gathercontent'),
+    'file' => 'finished.inc',
+    'file path' => $path,
+    'type' => MENU_CALLBACK,
+    'page arguments' => array('gathercontent_finished_form'),
+  );
+  $items['admin/config/content/gathercontent/set_project_id/%'] = array(
+    'page callback' => 'gathercontent_set_project_id',
+    'access arguments' => array('administer gathercontent'),
+    'file' => 'project.inc',
+    'file path' => $path,
+    'type' => MENU_CALLBACK,
+    'page arguments' => array(5),
+  );
+  $items['admin/config/content/gathercontent/download_media'] = array(
+    'page callback' => 'gathercontent_ajax_media_download',
+    'access arguments' => array('administer gathercontent'),
+    'file' => 'media.inc',
+    'file path' => $path,
+    'type' => MENU_CALLBACK,
+  );
+
+  return $items;
+}
+
+function gathercontent_permission() {
+  return array(
+    'administer gathercontent' => array(
+      'title' => t('Administer GatherContent'),
+      'description' => t('Change settings and import pages from GatherContent'),
+      'restrict access' => TRUE,
+    ),
+  );
+}
+
+function gathercontent_get_obj(){
+  static $obj;
+  if(!isset($obj)){
+    module_load_include('inc', 'gathercontent', 'includes/functions');
+    module_load_include('inc', 'gathercontent', 'includes/curl');
+    $obj = new GatherContent_Curl();
+  }
+  return $obj;
+}
+
+function gathercontent_check_step($step='') {
+  $checks = array('projects', 'login', 'pages', 'pages_import', 'media', 'finished');
+  $step = in_array($step,$checks) ? $step : 'projects';
+
+  $checks = array(
+    'projects' => array('fields'=>array('api_key','api_url'),'prev'=>'login'),
+    'pages' => array('fields'=>array('project_id'),'prev'=>'projects'),
+    'pages_import' => array('fields'=>array('project_id','selected_pages'),'prev'=>'projects'),
+    'media' => array('fields'=>array('project_id','selected_pages'),'prev'=>'projects'),
+  );
+
+  if(isset($checks[$step])) {
+    $error = false;
+    foreach($checks[$step]['fields'] as $chk) {
+      if(variable_get('gathercontent_'.$chk,'') == ''){
+        $error = true;
+      }
+    }
+    if($error){
+      $step = $checks[$step]['prev'];
+      drupal_goto('admin/config/content/gathercontent'.($step == 'projects' ? '' : '/'.$step));
+      return false;
+    }
+  }
+
+  $path = drupal_get_path('module', 'gathercontent');
+  drupal_add_css($path . '/css/main.css');
+  drupal_add_js($path . '/js/jquery-1.9.1.min.js');
+  drupal_add_js($path . '/js/bootstrap.min.js');
+  drupal_add_js($path . '/js/main.js');
+
+  return true;
+}
+
+function gathercontent_theme() {
+  $path = drupal_get_path('module', 'gathercontent').'/includes/';
+  return array(
+    'gathercontent_pages_form' => array(
+      'render element' => 'form',
+      'file' => 'pages.inc',
+      'path' => $path,
+    ),
+    'gathercontent_pages_import_form' => array(
+      'render element' => 'form',
+      'file' => 'pages_import.inc',
+      'path' => $path,
+    ),
+  );
+}
+
+function gathercontent_file_delete($file) {
+  db_delete('gathercontent_media')->condition('fid', $file->fid)->execute();
+}

@@ -1,0 +1,7 @@
+name = GatherContent
+description = Imports pages from GatherContent to your Drupal CMS
+package = GatherContent
+core = 7.x
+configure = admin/config/content/gathercontent
+dependencies[] = image
+dependencies[] = file
