@@ -4,51 +4,32 @@
     $('.repeat_config input').change(function(){
       var $t = $(this);
       if($t.is(':checked')){
-        var c = $t.closest('tr'),
-          page_id = c.attr('data-page-id'),
-          table = $('#gc_pagelist'),
-          rows = table.find('tbody tr[data-page-id]'),
-          idx = rows.index(c),
-          field_rows = c.find('.gc_settings_field'),
-          fields = {},
-          import_as = $('#gc_import_as_'+page_id+' input').val(),
-          filter = $('#gc_filter_'+page_id+' input').val();
-        rows = rows.filter(':gt('+idx+')');
-        field_rows.each(function(){
-          var $t = $(this).removeClass('not-moved'),
-            id = $t.attr('id').split('_')[2];
-          fields[field_rows.index($t)] = [$t.find('.gc_field_map input[name*="map_to"]').val(),id];
-        });
+        $('.gc_overlay,.gc_repeating_modal').show();
+        setTimeout(function(){
+          repeat_config($t);
+        },500);
+      }
+    });
 
-        rows.each(function(){
-          var $t = $(this),
-            page_id = $t.attr('data-page-id'),
-            c = $('#gc_fields_'+page_id);
-          c.find('> .gc_settings_field').addClass('not-moved');
-          $('#gc_import_as_'+page_id+' a[data-value="'+import_as+'"]').trigger('click');
-          $('#gc_filter_'+page_id+' a[data-value="'+filter+'"]').trigger('click');
-          for(var i in fields){
-            if(fields.hasOwnProperty(i)){
-              $('#gc_field_map_'+page_id+'_'+fields[i][1]+' li:not(.hidden-item) a[data-value="'+fields[i][0]+'"]').trigger('click');
-              var field = $('#field_'+page_id+'_'+fields[i][1]).removeClass('not-moved');
-              if(i > 0){
-                c.find('> .gc_settings_field:eq('+(i-1)+')').after(field);
-              } else {
-                c.prepend(field);
-              }
-            }
-          };
-          var new_ids = [];
-          $t.find('.gc_settings_field').each(function(){
-            new_ids.push($(this).attr('data-field-index'));
-          });
-          $t.find('.gc_field-order input').val(new_ids.join(','));
+    $('.gc_field_map').find('ul.dropdown-menu a:not([data-value="_new_custom_field_"])').click(function(){
+      var $t = $(this),
+          field = $t.closest('.gc_field_map'),
+          tr = field.closest('tr'),
+          page_id= tr.attr('data-page-id');
+      if($('#gc_repeat_'+page_id).is(':checked')){
+        var rows = tr.parent().find('tr[data-page-id]'),
+            idx = rows.index(tr),
+            field_id = field.attr('id').split('_')[4],
+            val = $t.attr('data-value');
+        rows.filter(':gt('+idx+')').each(function(){
+          var page_id = $(this).attr('data-page-id');
+          $('#gc_field_map_'+page_id+'_'+field_id+' li:not(.hidden-item) a[data-value="'+val+'"]').trigger('click');
         });
       }
     });
 
     $('#gathercontent-pages-import-form').submit(function(){
-      $('.gc_overlay,.gc_modal').show();
+      $('.gc_overlay,.gc_importing_modal').show();
     });
     $('.page-settings a').click(function(e){
       e.preventDefault();
@@ -104,6 +85,31 @@
       items: 'div.gc_settings_field',
       handle: '.gc_move_field',
       update: function(e, ui) {
+        var tr = ui.item.closest('tr'),
+          page_id = tr.attr('data-page-id');
+        if($('#gc_repeat_'+page_id).is(':checked')){
+          var rows = tr.parent().find('tr[data-page-id]'),
+            idx = rows.index(tr),
+            new_index = ui.item.index();
+          rows.filter(':gt('+idx+')').each(function(){
+            var $t = $(this),
+                page_id = $t.attr('data-page-id'),
+                field_id = ui.item.attr('id').split('_')[2],
+                item = $('#field_'+page_id+'_'+field_id);
+            if(item.length > 0){
+              if(new_index > 0){
+                item.parent().find('> .gc_settings_field:eq('+(new_index > item.index() ? new_index : (new_index-1))+')').after(item);
+              } else {
+                item.parent().prepend(item);
+              }
+            }
+            var new_ids = [];
+            $t.find('.gc_settings_field').each(function(){
+              new_ids.push($(this).attr('data-field-index'));
+            });
+            $t.find('.gc_field-order input').val(new_ids.join(','));
+          });
+        }
         var new_ids = [],
             el = ui.item.closest('.gc_settings_container');
           el.find('.gc_settings_field').each(function(){
@@ -141,6 +147,50 @@
     }
     el.trigger('click');
   };
+
+  function repeat_config($t){
+    var c = $t.closest('tr'),
+      page_id = c.attr('data-page-id'),
+      table = $('#gc_pagelist'),
+      rows = table.find('tbody tr[data-page-id]'),
+      idx = rows.index(c),
+      field_rows = c.find('.gc_settings_field'),
+      fields = {},
+      import_as = $('#gc_import_as_'+page_id+' input').val(),
+      filter = $('#gc_filter_'+page_id+' input').val();
+    rows = rows.filter(':gt('+idx+')');
+    field_rows.each(function(){
+      var $t = $(this).removeClass('not-moved'),
+        id = $t.attr('id').split('_')[2];
+      fields[field_rows.index($t)] = [$t.find('.gc_field_map input[name*="map_to"]').val(),id];
+    });
+
+    rows.each(function(){
+      var $t = $(this),
+        page_id = $t.attr('data-page-id'),
+        c = $('#gc_fields_'+page_id);
+      c.find('> .gc_settings_field').removeClass('moved').addClass('not-moved');
+      $('#gc_import_as_'+page_id+' a[data-value="'+import_as+'"]').trigger('click');
+      $('#gc_filter_'+page_id+' a[data-value="'+filter+'"]').trigger('click');
+      for(var i in fields){
+        if(fields.hasOwnProperty(i)){
+          $('#gc_field_map_'+page_id+'_'+fields[i][1]+' li:not(.hidden-item) a[data-value="'+fields[i][0]+'"]').trigger('click');
+          var field = $('#field_'+page_id+'_'+fields[i][1]).removeClass('not-moved').addClass('moved');
+          if(i > 0){
+            c.find('> .gc_settings_field:eq('+(i-1)+')').after(field);
+          } else {
+            c.prepend(field);
+          }
+        }
+      };
+      var new_ids = [];
+      $t.find('.gc_settings_field').each(function(){
+        new_ids.push($(this).attr('data-field-index'));
+      });
+      $t.find('.gc_field-order input').val(new_ids.join(','));
+    });
+    $('.gc_overlay,.gc_repeating_modal').hide();
+  }
   window.$gc_jQuery.expr[":"].icontains_searchable = window.$gc_jQuery.expr.createPseudo(function(arg) {
       return function( elem ) {
           return window.$gc_jQuery(elem).attr('data-search').toUpperCase().indexOf(arg.toUpperCase()) >= 0;

@@ -383,7 +383,7 @@ class GatherContent_Curl extends GatherContent_Functions {
             ),
             'repeat' => array(
               '#markup' => '<div class="gc_setting repeat_config">
-                    <label>'.t('Repeat this configuration').' <input type="checkbox" name="gc[repeat_'.$id.']" value="Y" /></label>
+                    <label>'.t('Repeat this configuration').' <input type="checkbox" id="gc_repeat_'.$id.'" name="gc[repeat_'.$id.']" value="Y" /></label>
                   </div>',
             ),
           );

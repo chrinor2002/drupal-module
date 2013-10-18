@@ -18,11 +18,15 @@ function gathercontent_pages_import_form($form, &$form_state) {
   drupal_add_js($path . '/js/jquery-ui-1.10.3.custom.min.js');
   drupal_add_js($path . '/js/pages_import.js');
 
-  $form['modal'] = array(
+  $form['modals'] = array(
     '#markup' => '
     <div class="gc_overlay"></div>
-    <div class="gc_container gc_modal">
+    <div class="gc_container gc_modal gc_importing_modal">
         <h2>'.t('Importing pages and text content...').'</h2>
+        <img src="'.url($path.'/images/ajax_loader_blue.gif').'" alt="" />
+    </div>
+    <div class="gc_container gc_modal gc_repeating_modal">
+        <h2>'.t('Repeating configuration...').'</h2>
         <img src="'.url($path.'/images/ajax_loader_blue.gif').'" alt="" />
     </div>',
   );
@@ -127,7 +131,7 @@ function theme_gathercontent_pages_import_form($variables) {
     '<input type="checkbox" class="gc_toggle_all" />'
   );
 
-  $output = drupal_render($form['modal']);
+  $output = drupal_render($form['modals']);
   $output .= drupal_render($form['page_header']);
   $output .= drupal_render($form['page_options']);
   $output .= theme('table', array(
