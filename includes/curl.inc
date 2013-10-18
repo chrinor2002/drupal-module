@@ -484,7 +484,7 @@ sprintf(t('This page is empty. You can %sadd some content to this page in Gather
       ),
       'map_to' => array(
         '#type' => 'hidden',
-        '#prefix' => '<div class="gc_field_map gc_right" id="gc_field_map_'.$fieldid.'">'.$this->dropdown_html('<span></span>',$this->data['map_to_select']),
+        '#prefix' => '<div class="gc_field_map gc_right" id="gc_field_map_'.$fieldid.'"><span>'.t('Map to').'</span>'.$this->dropdown_html('<span></span>',$this->data['map_to_select']),
         '#suffix' => '</div>',
         '#parents' => array(
           'map_to',
