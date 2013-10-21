@@ -199,28 +199,4 @@ function gathercontent_ajax_media_download() {
 
   echo json_encode($out);
   exit;
-  /*
-  $obj = gathercontent_get_obj();
-  $dir = 'public://';
-  $dir .= 'field_blah';
-  $file = 'Screen Shot 2013-09-10 at 15.20.16.png';
-  if (substr($dir, -1) != '/') {
-    $dir .= '/';
-  }
-  if(!file_prepare_directory($dir, FILE_CREATE_DIRECTORY)) {
-    watchdog('file', 'The upload directory %directory for the file field !name could not be created or is not accessible. A newly uploaded file could not be saved in this directory as a consequence, and the upload was canceled.', array('%directory' => $dir, '!name' => $element['#field_name']));
-  }
-  $destination = file_destination($dir . $file, FILE_EXISTS_RENAME);
-  $resp = $obj->_curl('https://gathercontent.s3.amazonaws.com/1362494748_1503_26a8ae1803e1023090682f68a163a32c');
-  $fp = fopen($destination,'w');
-  if(!$fp) {
-    $real_destination = drupal_realpath($destination);
-    $fp = fopen($real_destination,'w');
-  }
-  if($fp) {
-    fwrite($fp,$resp['response']);
-    fclose($fp);
-  }
-  echo $destination;
-  exit;*/
 }
