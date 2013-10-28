@@ -7,6 +7,7 @@ class GatherContent_Curl extends GatherContent_Functions {
   var $api_error_shown = false;
   var $default_filter = '';
   var $ids_used = array();
+  var $files = array();
 
   function get_field_config($obj,$files=array()){
     $fields = $obj->custom_field_config;
@@ -50,19 +51,17 @@ class GatherContent_Curl extends GatherContent_Functions {
     return $new_fields;
   }
 
-  function get_files(){
-    $files = $this->get('get_files_by_project',array('id'=>variable_get('gathercontent_project_id')));
-    $new_files = array();
+  function get_files($page_id){
+    $files = $this->get('get_files_by_page',array('id'=>$page_id));
     if($files && isset($files->files) && $this->foreach_safe($files->files)){
       foreach($files->files as $file){
-        if(!isset($new_files[$file->page_id]))
-          $new_files[$file->page_id] = array();
-        if(!isset($new_files[$file->page_id][$file->field]))
-          $new_files[$file->page_id][$file->field] = array();
-        $new_files[$file->page_id][$file->field][] = $file;
+        if(!isset($this->files[$file->page_id]))
+          $this->files[$file->page_id] = array();
+        if(!isset($this->files[$file->page_id][$file->field]))
+          $this->files[$file->page_id][$file->field] = array();
+        $this->files[$file->page_id][$file->field][] = $file;
       }
     }
-    $this->files = $new_files;
   }
 
   function get_projects(){
@@ -157,13 +156,12 @@ class GatherContent_Curl extends GatherContent_Functions {
     $this->default_post_type = $default;
   }
 
-  function get_pages($selected=false){
+  function get_pages($save_pages=false){
     $pages = $this->get('get_pages_by_project',array('id'=>variable_get('gathercontent_project_id')));
     $original = array();
     $new_pages = array();
     $parent_array = array();
     $meta_pages = array();
-    $selected_pages = variable_get('gathercontent_selected_pages');
     if($pages && is_array($pages->pages)){
       foreach($pages->pages as $page){
         if($page->state != 'meta'){
@@ -199,6 +197,15 @@ class GatherContent_Curl extends GatherContent_Functions {
     $this->pages = $new_pages;
     $this->original_array = $original;
     $this->meta_pages = $meta_pages;
+    if($save_pages){
+      $project_id = variable_get('gathercontent_project_id');
+      $saved_pages = variable_get('gathercontent_saved_pages');
+      if(!is_array($saved_pages)){
+        $saved_pages = array();
+      }
+      $saved_pages[$project_id] = array('pages' => $original, 'meta' => $meta_pages);
+      variable_set('gathercontent_saved_pages', $saved_pages);
+    }
   }
 
   function page_overwrite_dropdown(){
@@ -237,8 +244,23 @@ class GatherContent_Curl extends GatherContent_Functions {
     $this->data['overwrite_select'] = $html;
   }
 
+  function filters_dropdown() {
+    $formatting = array();
+    $html = '';
+    $result = db_query("SELECT * FROM {filter_format}");
+    foreach($result as $record) {
+      if($this->default_filter == '') {
+        $this->default_filter = $record->format;
+      }
+      $html .= '
+      <li>
+        <a href="#" data-value="'.$record->format.'">'.$record->name.'</a>
+      </li>';
+    }
+    $this->data['formatting'] = $html;
+  }
+
   function map_to_dropdown(){
-    $fields = $this->get_drupal_fields();
     $html = '
       <li data-post-type="all" class="live_filter">
         <input type="text" class="live_filter" placeholder="'.check_plain(t('Search...')).'" />
@@ -391,22 +413,21 @@ class GatherContent_Curl extends GatherContent_Functions {
             '#prefix' => '<div class="gc_settings_fields" id="gc_fields_'.$id.'">',
             '#suffix' => '</div>',
           );
-          $counter = -1;
           $field_settings = $this->val($cur_settings,'fields',array());
           if(count($field_settings) > 0) {
             foreach($field_settings as $name => $value) {
               list($tab,$field_name) = explode('_', $name, 2);
               if($tab == 'content' && isset($fields[$field_name])) {
-                $tmp = $this->field_settings($id, $fields[$field_name], $tab, '', $value, $counter);
+                $tmp = $this->field_settings($id, $fields[$field_name], $tab, '', $value);
                 if($tmp != ''){
-                  $form['settings'][$id]['fields'][$counter++] = $tmp;
+                  $form['settings'][$id]['fields'][] = $tmp;
                 }
                 unset($fields[$field_name]);
               }
               elseif($tab == 'meta' && $meta !== false && isset($meta[$field_name])) {
-                $tmp = $this->field_settings($id, $meta[$field_name], $tab, ' (Meta)', $value, $counter);
+                $tmp = $this->field_settings($id, $meta[$field_name], $tab, ' (Meta)', $value);
                 if($tmp != ''){
-                  $form['settings'][$id]['fields'][$counter++] = $tmp;
+                  $form['settings'][$id]['fields'][] = $tmp;
                 }
                 unset($meta[$field_name]);
               }
@@ -414,36 +435,20 @@ class GatherContent_Curl extends GatherContent_Functions {
           }
           foreach($fields as $field) {
             $value = $this->val($field_settings, 'content_'.$field['name']);
-            $tmp = $this->field_settings($id, $field, 'content', '', $value, $counter);
+            $tmp = $this->field_settings($id, $field, 'content', '', $value);
             if($tmp != ''){
-              $form['settings'][$id]['fields'][$counter++] = $tmp;
+              $form['settings'][$id]['fields'][] = $tmp;
             }
           }
           if($meta !== false) {
             foreach($meta as $field) {
               $value = $this->val($field_settings, 'meta_'.$field['name']);
-              $tmp = $this->field_settings($id, $field, 'meta', ' (Meta)', $value, $counter);
+              $tmp = $this->field_settings($id, $field, 'meta', ' (Meta)', $value);
               if($tmp != ''){
-                $form['settings'][$id]['fields'][$counter++] = $tmp;
+                $form['settings'][$id]['fields'][] = $tmp;
               }
             }
           }
-          $input_val = '';
-          if($counter > -1){
-            for($i=0;$i<$counter+1;$i++) {
-              $input_val .= ($input_val == ''?'':',').$i;
-            }
-          }
-          $form['settings'][$id]['field_order'] = array(
-            '#type' => 'hidden',
-            '#parents' => array(
-              'field_order',
-              $id,
-            ),
-            '#default_value' => $input_val,
-            '#prefix' => '<div class="gc_field-order">',
-            '#suffix' => '</div>',
-          );
         }
         else {
           $form['settings'][$id] = array(
@@ -465,7 +470,7 @@ sprintf(t('This page is empty. You can %sadd some content to this page in Gather
     return $form;
   }
 
-  function field_settings($id,$field,$tab='content',$name_suffix='',$val='',$counter){
+  function field_settings($id,$field,$tab='content',$name_suffix='',$val=''){
     if($field['type'] == 'section'){
       return '';
     }
@@ -475,9 +480,8 @@ sprintf(t('This page is empty. You can %sadd some content to this page in Gather
       $fieldid = $fieldid.$idcounter++;
     }
     $this->ids_used[$fieldid] = true;
-    ++$counter;
     $arr = array(
-      '#prefix' => '<div class="gc_settings_field gc_cf" data-field-tab="'.$tab.'" data-field-index="'.$counter.'" id="field_'.$fieldid.'"><div class="gc_move_field"></div>',
+      '#prefix' => '<div class="gc_settings_field gc_cf" data-field-tab="'.$tab.'" id="field_'.$fieldid.'"><div class="gc_move_field"></div>',
       '#suffix' => '</div>',
       'label' => array(
         '#markup' => '<div class="gc_field_name gc_left">'.check_plain($field['label']).$name_suffix.'</div>',
@@ -489,7 +493,7 @@ sprintf(t('This page is empty. You can %sadd some content to this page in Gather
         '#parents' => array(
           'map_to',
           $id,
-          $counter,
+          '',
         ),
         '#default_value' => $val
       ),
@@ -499,7 +503,7 @@ sprintf(t('This page is empty. You can %sadd some content to this page in Gather
         '#parents' => array(
           'field_tab',
           $id,
-          $counter,
+          '',
         )
       ),
       'field_name' => array(
@@ -508,7 +512,7 @@ sprintf(t('This page is empty. You can %sadd some content to this page in Gather
         '#parents' => array(
           'field_name',
           $id,
-          $counter,
+          '',
         )
       ),
     );
@@ -554,13 +558,17 @@ sprintf(t('This page is empty. You can %sadd some content to this page in Gather
         return $resp;
       } elseif(isset($resp->error)){
         $error = $resp->error;
-        if($error == 'You have to log in.'){
-          if($this->api_error_shown){
-            return false;
+        if($command == 'get_files_by_page' && $error == 'Files not found.') {
+          return false;
+        } else {
+          if($error == 'You have to log in.'){
+            if($this->api_error_shown){
+              return false;
+            }
+            $error = $this->auth_error();
           }
-          $error = $this->auth_error();
+          drupal_set_message(t($error), 'error');
         }
-        drupal_set_message(t($error), 'error');
       } else {
         if(!$this->api_error_shown){
           drupal_set_message($this->auth_error(), 'error');

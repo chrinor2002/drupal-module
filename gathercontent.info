@@ -5,3 +5,4 @@ core = 7.x
 configure = admin/config/content/gathercontent
 dependencies[] = image
 dependencies[] = file
+dependencies[] = entity

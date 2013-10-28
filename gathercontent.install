@@ -24,6 +24,7 @@ function gathercontent_uninstall() {
   variable_del('gathercontent_media_files');
   variable_del('gathercontent_selected_pages');
   variable_del('gathercontent_saved_settings');
+  variable_del('gathercontent_saved_pages');
 }
 
 function gathercontent_schema() {
