@@ -82,8 +82,11 @@ function gathercontent_ajax_media_download() {
       $page_total = $cur_post['total_files'];
       $more_than_1 = (count($cur_post['files'][0]) > 1);
       $file = array_shift($cur_post['files'][0]);
-      $field = $obj->get_drupal_field($file['node_type'],$file['field']);
-      $file['field_type'] = $field['type'];
+      $is_file_field = $file['is_file_field'];
+      $field_type = $file['field_type'];
+      $node = node_load($post_id);
+      $entity = entity_metadata_wrapper('node', $node);
+
       if(!$more_than_1) {
         array_shift($cur_post['files']);
       }
@@ -94,10 +97,7 @@ function gathercontent_ajax_media_download() {
       $file_obj = $file_obj->execute();
       if($file_obj->rowCount() > 0) {
         $file_obj = $file_obj->fetchObject();
-        $file['file_obj'] = $file_obj;
-        $file['url'] = file_create_url($file_obj->uri);
-
-        $obj->add_media_to_content($post_id,$file,$field,$more_than_1);
+        $obj->_add_media_to_entity($entity, $is_file_field, $file_obj, $file['field'], $more_than_1, $field_type, $file['counter']);
 
         $out = $obj->get_media_ajax_output($post_id,$media,$cur_post,$page_total,$total);
         $out['success'] = true;
@@ -142,10 +142,7 @@ function gathercontent_ajax_media_download() {
             );
             drupal_write_record('gathercontent_media', $gid);
 
-            $file['file_obj'] = $new_file;
-            $file['url'] = file_create_url($file_obj->uri);
-
-            $obj->add_media_to_content($post_id,$file,$field,$more_than_1);
+            $obj->_add_media_to_entity($entity, $is_file_field, $new_file, $file['field'], $more_than_1, $field_type, $file['counter']);
 
             $out = $obj->get_media_ajax_output($post_id,$media,$cur_post,$page_total,$total);
             $out['success'] = true;

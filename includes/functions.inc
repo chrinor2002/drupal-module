@@ -4,89 +4,6 @@ class GatherContent_Functions {
   var $data = array();
   var $formatting = array();
 
-  function get_drupal_fields() {
-    $fields = array();
-    $result = db_query("SELECT con.data, con.type, con.field_name, con.id, ins.data as ins_data, ins.bundle FROM {field_config_instance} ins INNER JOIN {field_config} con ON ins.field_id = con.id");
-    foreach($result as $record) {
-      if(!isset($fields[$record->bundle])) {
-        $fields[$record->bundle] = array();
-      }
-
-      $fields[$record->bundle][$record->field_name] = $this->_process_drupal_field($record);
-    }
-
-    $formatting = array();
-    $html = '';
-    $result = db_query("SELECT * FROM {filter_format}");
-    foreach($result as $record) {
-      if($this->default_filter == '') {
-        $this->default_filter = $record->format;
-      }
-      $html .= '
-      <li>
-        <a href="#" data-value="'.$record->format.'">'.$record->name.'</a>
-      </li>';
-    }
-    $this->data['formatting'] = $html;
-    return $fields;
-  }
-
-  function get_drupal_field($node_type,$field_name) {
-    $result = db_query("SELECT con.data, con.type, con.field_name, con.id, ins.data as ins_data, ins.bundle FROM {field_config_instance} ins INNER JOIN {field_config} con ON ins.field_id = con.id WHERE ins.bundle=:node_type AND con.field_name=:field_name",
-      array(
-        'node_type' => $node_type,
-        'field_name' => $field_name,
-      ));
-    if($result->rowCount() > 0) {
-      return $this->_process_drupal_field($result->fetchObject());
-    } else {
-      return array(
-        'type' => '',
-        'formatting' => false,
-        'allow_format_change' => false,
-        'file_directory' => '',
-      );
-    }
-  }
-
-  function _process_drupal_field($record) {
-    $arr = array('field_id' => $record->id, 'type' => $record->type);
-
-    $tmp = @unserialize($record->data);
-
-    if($arr['type'] == 'taxonomy_term_reference') {
-      if(isset($tmp['settings']['allowed_values'][0])) {
-        $arr['vocabulary'] = $tmp['settings']['allowed_values'][0]['vocabulary'];
-      }
-    }
-
-    $has_formatting = false;
-    if(isset($tmp['foreign keys']['format']['table']) &&
-      $tmp['foreign keys']['format']['table'] == 'filter_format' &&
-      isset($tmp['foreign keys']['format']['columns']['format'])) {
-      $has_formatting = true;
-    }
-    $arr['formatting'] = $has_formatting;
-
-    $allow_format_change = false;
-    $tmp = @unserialize($record->ins_data);
-    if($has_formatting) {
-      if(isset($tmp['settings']['text_processing']) && $tmp['settings']['text_processing'] == 1) {
-        $allow_format_change = true;
-      }
-    }
-    if($arr['type'] == 'image' || $arr['type'] == 'file') {
-      $dir = '';
-      if(isset($tmp['settings']['file_directory'])) {
-        $dir = $tmp['settings']['file_directory'];
-      }
-      $arr['file_directory'] = $dir;
-    }
-    $arr['allow_format_change'] = $allow_format_change;
-    return $arr;
-  }
-
-
   function get_page_title_array($post_id){
     $data = array();
     $post = node_load($post_id);
@@ -118,59 +35,56 @@ class GatherContent_Functions {
     return $default;
   }
 
-  function add_media_to_content($post_id,$file,$field,$more_than_1=false){
-    $image_types = array('image/gif', 'image/jpeg', 'image/png');
-    $file_obj = $file['file_obj'];
-    $image_file = in_array($file_obj->filemime, $image_types);
-    $html = $file['url'];
-    $node = node_load($post_id);
-    $val = $node->{$file['field']}[$node->language];
-    if($file['field_type'] == 'image' || $file['field_type'] == 'file') {
-      $val[] = array(
-        'fid' => $file_obj->fid,
-        'display' => 1,
-        'description' => '',
-      );
+  function _add_media_to_entity(&$entity, $is_file_field, $file_obj, $field, $more_than_1, $field_type, $counter) {
+    if($is_file_field) {
+      $file_val = array('fid' => $file_obj->fid, 'display' => TRUE);
+      if(strpos($field_type, 'list') === 0) {
+        $cur_val = $entity->{$field}->value();
+        if(!is_array($cur_val)) {
+          $cur_val = array();
+        }
+        $cur_val[] = $file_val;
+        $entity->{$field}->set($cur_val);
+      }
+      else {
+        $entity->{$field}->set($file_val);
+      }
     }
     else {
-
-      $plain_text = true;
-      $allow_format = false;
-      if($file['filter'] != 'plain_text') {
-        if($field['formatting']) {
-          $plain_text = false;
-        }
-        if($field['allow_format_change']) {
-          $plain_text = false;
-          $allow_format = true;
-        }
-      } elseif($field['allow_format_change']) {
-        $allow_format = true;
-      }
-
-      $tag = '#_gc_file_name_'.$file['counter'].'#';
-      if(!$plain_text) {
-        if($image_file){
-          $html = '<a href="'.$file['url'].'"><img src="'.$file['url'].'" alt="'.check_plain($file_obj->filename).'" /></a>';
-        }
-        else {
-          $html = '<a href="'.$file['url'].'">'.$file_obj->filename.'</a>';
+      $value = $entity->{$field}->value();
+      if($field_type == 'text_formatted') {
+        $value['value'] = $this->_add_media_to_content($value['value'], file_create_url($file_obj->uri), $file_obj->filename, $file_obj->filemime, $value['format'], $more_than_1, $counter);
+        if(isset($value['safe_value'])) {
+          unset($value['safe_value']);
         }
       }
-
-      $html = "\n".$html."\n";
-
-      if($more_than_1){
-        $html .= $tag;
+      else {
+        $value = $this->_add_media_to_content($value, file_create_url($file_obj->uri), $file_obj->filename, $file_obj->filemime, 'plain_text', $more_than_1, $counter);
       }
-      $val = array(array(
-        'value' => str_replace($tag,$html,$val[0]['value']),
-        'format' => $file['filter'],
-      ));
+      $entity->{$field}->set($value);
     }
-    $node->{$file['field']}[$node->language] = $val;
-    $node = node_submit($node);
-    node_save($node);
+    $entity->save();
+  }
+
+  function _add_media_to_content($value, $file_url, $filename, $filemime, $filter, $more_than_1, $counter) {
+    $image_types = array('image/gif', 'image/jpeg', 'image/png');
+    $image_file = in_array($filemime, $image_types);
+    $tag = '#_gc_file_name_'.$counter.'#';
+    $html = $file_url;
+    if($filter != 'plain_text') {
+      if($image_file) {
+        $html = '<a href="'.$file_url.'"><img src="'.$file_url.'" alt="'.check_plain($filename).'" /></a>';
+      }
+      else {
+        $html = '<a href="'.$file_url.'">'.$filename.'</a>';
+      }
+    }
+
+    $html = "\n".$html."\n";
+    if($more_than_1) {
+      $html .= $tag;
+    }
+    return str_replace($tag, $html, $value);
   }
 
   function get_media_ajax_output($post_id,$media,$cur_post,$page_total,$total){

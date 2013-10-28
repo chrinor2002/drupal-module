@@ -74,6 +74,13 @@ function gathercontent_menu() {
     'file path' => $path,
     'type' => MENU_CALLBACK,
   );
+  $items['admin/config/content/gathercontent/import_page'] = array(
+    'page callback' => 'gathercontent_import_page',
+    'access arguments' => array('administer gathercontent'),
+    'file' => 'pages_import.inc',
+    'file path' => $path,
+    'type' => MENU_CALLBACK,
+  );
 
   return $items;
 }
