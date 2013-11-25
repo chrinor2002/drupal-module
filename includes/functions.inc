@@ -3,6 +3,7 @@ class GatherContent_Functions {
 
   var $data = array();
   var $formatting = array();
+  var $error = '';
 
   function get_page_title_array($post_id){
     $data = array();
