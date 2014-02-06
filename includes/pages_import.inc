@@ -200,19 +200,20 @@ function gathercontent_import_page() {
       'files' => array(),
       'total_files' => 0,
     );
+
+    if($_POST['cur_counter'] == 0) {
+      variable_set('gathercontent_media_files', array());
+    }
     if(is_array($pages) && isset($pages[$project_id]) && isset($pages[$project_id]['pages'][$page_id])) {
       extract($pages[$project_id]);
       $obj->get_files($page_id);
 
       $page = $pages[$page_id];
-      $custom_fields = $obj->get_field_config($page,$obj->val($obj->files,$page_id,array()));
-      $meta_id = 0;
-      $meta_fields = array();
-      if(isset($meta[$page_id])){
-        $meta_id = $meta[$page_id]->id;
-        $obj->get_files($meta_id);
-        $meta_fields = $obj->get_field_config($meta[$page_id], $obj->val($obj->files,$meta_id,array()));
-      }
+
+      $config = $obj->get_field_config($page, $obj->val($obj->files, $page_id, array()));
+
+      $custom_fields = $obj->val($config, 'content', array());
+      $meta_fields = $obj->val($config, 'meta', array());
       $fields = $obj->val($gc,'fields',array());
 
       $save_settings = array(
@@ -270,7 +271,7 @@ function gathercontent_import_page() {
 
           if($map_to != 'title') {
             $cur_field = $entity->{$map_to}->info();
-            if($field['type'] == 'attach') {
+            if($field['type'] == 'files') {
               if(is_array($field['value']) && count($field['value']) > 0) {
                 $new_files = array();
                 $dir = '';
@@ -309,7 +310,7 @@ function gathercontent_import_page() {
           }
 
           if($map_to == 'title') {
-            $entity->title->set($field['value']);
+            $entity->title->set(strip_tags($field['value']));
           }
           elseif(!empty($field['value'])) {
             if(isset($cur_field['property info']['file'])) {
@@ -377,7 +378,7 @@ function gathercontent_import_page() {
               }
             }
             elseif($cur_field['type'] == 'text_formatted') {
-              if($field['type'] == 'checkbox') {
+              if($field['type'] == 'choice_checkbox') {
                 if($save_settings['filter'] == 'plain_text') {
                   $tmp = '';
                   foreach($field['value'] as $value) {
@@ -393,7 +394,7 @@ function gathercontent_import_page() {
                   $field['value'] = $tmp;
                 }
               }
-              elseif($field['type'] != 'paragraph') {
+              elseif($field['type'] != 'text') {
                 $field['value'] = '<p>'.$field['value'].'</p>';
               }
               if($save_settings['filter'] == 'plain_text') {

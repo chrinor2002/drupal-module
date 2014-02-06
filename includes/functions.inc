@@ -115,6 +115,10 @@ class GatherContent_Functions {
 
     $data = $this->get_page_title_array($next_id);
 
+    if($overall_percent == 100) {
+      variable_set('gathercontent_media_files',array());
+    }
+
     $out = array(
       'page_percent' => $page_percent,
       'overall_percent' => $overall_percent,
