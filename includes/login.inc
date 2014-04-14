@@ -23,7 +23,7 @@ function gathercontent_login_form($form, &$form_state) {
     '#prefix' => '
 <div class="form-item form-type-textfield form-item-gathercontent-api-key">
   <label for="edit-gathercontent-api-key">'.t('API Key').'</label>',
-    '#suffix' => '<div class="description">'.t('You can find your unique API key inside your GatherContent account by going to Settings and opening the API tab.').'</div>
+    '#suffix' => '<div class="description">'.t('You can find your unique API key inside your GatherContent account by going to Personal Settings and opening the API tab.').'</div>
 </div>',
     '#theme_wrappers' => array(),
   );

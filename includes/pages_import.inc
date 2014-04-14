@@ -318,25 +318,52 @@ function gathercontent_import_page() {
             }
             elseif(strpos($cur_field['type'], 'taxonomy_term') !== FALSE) {
               if(!is_array($field['value'])) {
-                $terms = array_filter(explode(',', strip_tags($field['value'])));
+                $field['value'] = array_filter(explode(',', strip_tags($field['value'])));
               }
-              if(count($terms) > 0) {
+              else {
+                $field['value'] = array_filter($field['value']);
+              }
+              $is_list = (strpos($cur_field['type'], 'list') !== FALSE);
+              if(count($field['value']) > 0) {
                 if(isset($cur_field['options list'])) {
-                  $options = $entity->{$map_to}->optionsList();
-                  $term = array_shift($terms);
-                  $key = array_search($term, $options);
-                  if($key !== FALSE) {
-                    $entity->{$map_to}->set($key);
-                  }
-                  elseif(isset($options[$term])) {
-                    $entity->{$map_to}->set($term);
+                  if($is_list) {
+                    $options = $entity->{$map_to}->optionsList();
+                    $values = array();
+                    foreach($field['value'] as $term) {
+                      $key = array_search($term, $options);
+                      if($key !== FALSE) {
+                        $values[] = $key;
+                      }
+                      elseif(isset($options[$term])) {
+                        $values[] = $term;
+                      }
+                      else {
+                        $tag = entity_property_values_create_entity('taxonomy_term', array(
+                          'name' => $term,
+                          'vocabulary' => $cur_field['bundle'],
+                        ))->save()->value();
+                        $values[] = $tag->tid;
+                      }
+                    }
+                    $entity->{$map_to}->set($values);
                   }
                   else {
-                    $tag = entity_property_values_create_entity('taxonomy_term', array(
-                      'name' => $term,
-                      'vocabulary' => $cur_field['bundle'],
-                    ))->save()->value();
-                    $entity->{$map_to}->set($tag);
+                    $options = $entity->{$map_to}->optionsList();
+                    $term = array_shift($field['value']);
+                    $key = array_search($term, $options);
+                    if($key !== FALSE) {
+                      $entity->{$map_to}->set($key);
+                    }
+                    elseif(isset($options[$term])) {
+                      $entity->{$map_to}->set($term);
+                    }
+                    else {
+                      $tag = entity_property_values_create_entity('taxonomy_term', array(
+                        'name' => $term,
+                        'vocabulary' => $cur_field['bundle'],
+                      ))->save()->value();
+                      $entity->{$map_to}->set($tag);
+                    }
                   }
                 }
                 else {
