@@ -493,7 +493,7 @@ sprintf(t('This page is empty. You can %sadd some content to this page in Gather
         }
       }
       if(isset($page->children) && count($page->children) > 0){
-        $form = $this->generate_form_settings($form, $page->children,$index);
+        $form = $this->generate_form_settings($form, $page->children,$index,$show_settings);
       }
     }
 
