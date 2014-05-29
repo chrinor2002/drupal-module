@@ -37,6 +37,9 @@ class GatherContent_Curl extends GatherContent_Functions {
                     $val = preg_replace('/<\/p>\s*</m', "</p>\n<", $val);
                     $val = preg_replace('/<p>\s*<\/p>/m','<p>&nbsp;</p>',$val);
                     $val = str_replace(array('<ul><li','</li><li>', '</li></ul>'), array("<ul>\n\t<li","</li>\n\t<li>", "</li>\n</ul>"), $val);
+                    $val = html_entity_decode($val);
+                    $val = trim(preg_replace('/\s+/',' ', $val));
+                    $val = preg_replace("/<p>\s/m", "<p>", $val);
                   }
                   break;
 
@@ -490,7 +493,7 @@ sprintf(t('This page is empty. You can %sadd some content to this page in Gather
         }
       }
       if(isset($page->children) && count($page->children) > 0){
-        $form = $this->generate_form_settings($form, $page->children,$index);
+        $form = $this->generate_form_settings($form, $page->children,$index,$show_settings);
       }
     }
 
