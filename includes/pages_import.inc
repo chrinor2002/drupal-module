@@ -24,7 +24,7 @@ function gathercontent_pages_import_form($form, &$form_state) {
       'error_message' => t('There was a problem connecting. Please try again later'),
     ),
   ), 'setting');
-  $path = drupal_get_path('module', 'gathercontent');
+  $path = '/'.drupal_get_path('module', 'gathercontent');
   drupal_add_js($path . '/js/jquery-ui-1.10.3.custom.min.js');
   drupal_add_js($path . '/js/pages_import.js');
 
@@ -33,14 +33,14 @@ function gathercontent_pages_import_form($form, &$form_state) {
     <div class="gc_overlay"></div>
     <div class="gc_container gc_modal gc_importing_modal">
         <h2>'.t('Importing pages and text content...').'</h2>
-        <label>'.t('Page:').' <span id="gc_page_title"></span><img src="'.url($path.'/images/ajax-loader-grey.gif').'" alt="" /></label>
+        <label>'.t('Page:').' <span id="gc_page_title"></span><img src="'.$path.'/images/ajax-loader-grey.gif" alt="" /></label>
         <div id="current_page" class="progress">
             <div class="bar" style="width:0%"></div>
         </div>
     </div>
     <div class="gc_container gc_modal gc_repeating_modal">
         <h2>'.t('Repeating configuration...').'</h2>
-        <img src="'.url($path.'/images/ajax_loader_blue.gif').'" alt="" />
+        <img src="'.$path.'/images/ajax_loader_blue.gif" alt="" />
     </div>',
   );
 
