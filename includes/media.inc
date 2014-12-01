@@ -10,7 +10,7 @@ function gathercontent_media_form($form, &$form_state) {
       'error_message' => t('There was a problem connecting. Please try again later'),
     ),
   ), 'setting');
-  $path = '/'.drupal_get_path('module', 'gathercontent');
+  $path = drupal_get_path('module', 'gathercontent');
   drupal_add_js($path . '/js/media.js');
 
   $obj = gathercontent_get_obj();
@@ -37,7 +37,7 @@ function gathercontent_media_form($form, &$form_state) {
   $form['current_page']['label'] = array(
     '#prefix' => '<label>',
     '#suffix' => '</label>',
-    '#markup' => t('Page:').' <span id="gc_page_title" title="'.$original_title.'">'.$page_title.'</span><img src="'.$path.'/images/ajax-loader-grey.gif" alt="" />',
+    '#markup' => t('Page:').' <span id="gc_page_title" title="'.$original_title.'">'.$page_title.'</span><img src="'.file_create_url($path.'/images/ajax-loader-grey.gif').'" alt="" />',
   );
 
   $form['current_page']['progress_bar'] = array(
