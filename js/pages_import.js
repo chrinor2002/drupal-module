@@ -1,6 +1,50 @@
 ;(function($){
   var page_loaded = false;
   $(document).ready(function(){
+
+    $('tr[data-page-id]').each(function(){
+      var parent_id = $(this).attr('data-parent-id'),
+        page_id = $(this).attr('data-page-id'),
+        parent_field = $('#gc_parent_' + page_id),
+        import_as = $('#gc_import_as_' + page_id + ' input'),
+        remove = true;
+
+      if(parent_id > 0) {
+        if($('tr[data-page-id="' + parent_id + '"]').length > 0) {
+          remove = false;
+        }
+      }
+
+      if(remove === true) {
+        parent_field.find('.imported-page').remove();
+      }
+      set_value(parent_field);
+    });
+
+    $('td.gc_checkbox :checkbox').change(function() {
+      var value = $(this).val(),
+        type = $('#gc_import_as_' + value + ' input').val(),
+        func = 'addClass';
+
+      if($(this).is(':checked')) {
+        if(typeof Drupal.settings.gathercontent.hierarchical_post_types[type] != 'undefined') {
+          func = 'removeClass';
+        }
+      }
+
+      hide_imported_parent(value, func);
+    });
+
+    $('input[name^="parent"]').change(function() {
+      var func = 'addClass',
+        page_id = $(this).closest('tr').attr('data-page-id');
+      if($(this).val() != 0) {
+        func = 'removeClass';
+      }
+      hide_imported_parent(page_id, func);
+    });
+
+
     $('.repeat_config input').change(function(){
       var $t = $(this);
       if($t.is(':checked')){
@@ -11,7 +55,7 @@
       }
     });
 
-    $('.gc_field_map').find('ul.dropdown-menu a:not([data-value="_new_custom_field_"])').click(function(){
+    $('.gc_field_map').find('ul.dropdown-menu a').click(function(){
       var $t = $(this),
           field = $t.closest('.gc_field_map'),
           tr = field.closest('tr'),
@@ -33,19 +77,6 @@
     });
 
     $('#gathercontent-pages-import-form').submit(submit_page_import);
-    $('.page-settings a').click(function(e){
-      e.preventDefault();
-      var el = $(this).closest('tr').next().find('> td > div');
-      if(el.is(':visible')){
-        el.slideUp('fast').fadeOut('fast',function(){
-          el.parent().hide();
-        });
-        $(this).find('.caret').addClass('caret-up');
-      } else {
-        el.parent().show().end().slideDown('fast').fadeIn('fast');
-        $(this).find('.caret').removeClass('caret-up');
-      }
-    });
 
     $('.gc_field_map input.live_filter').click(function(e){
       e.preventDefault();
@@ -62,7 +93,7 @@
       $(this).trigger('keyup');
     });
 
-    $('.gc_settings_container .has_input ul a').click(function(e){
+    $('.gc_settings_container .has_input').on('click', 'ul a', function(e){
       e.preventDefault();
       $(this).closest('.has_input').find('a:first span:first').html($(this).html()).end().siblings('input').val($(this).attr('data-value')).trigger('change');
     });
@@ -71,9 +102,25 @@
       var v = $(this).val(),
         c = $(this).closest('tr'),
         page_id = c.attr('data-page-id'),
-        to = $('#gc_import_to_'+page_id);
-      to.find('li[data-post-type]').filter('[data-post-type!="'+v+'"]').hide().addClass('hidden-item').end().filter('[data-post-type="'+v+'"]').show().removeClass('hidden-item');
+        to = $('#gc_import_to_'+page_id),
+        parent = $('#gc_parent_'+page_id);
+
+      to.add(parent).find('li[data-post-type]').filter('[data-post-type!="'+v+'"]').hide().addClass('hidden-item').end().filter('[data-post-type="'+v+'"]').show().removeClass('hidden-item');
+
       set_value(to);
+
+      if(typeof Drupal.settings.gathercontent.hierarchical_post_types[v] != 'undefined') {
+        parent.show();
+        set_value(parent);
+        parent_func = 'show';
+      }
+      else {
+        parent.hide();
+        parent_func = 'hide';
+      }
+
+      hide_imported_parent(page_id, parent_func);
+
       set_map_to_fields(c,v,page_id);
     }).each(function(){
       set_value($(this).parent());
@@ -116,6 +163,16 @@
     page_loaded = true;
   });
 
+  function hide_imported_parent(page_id, func){
+
+    var display = func == 'addClass' ? 'none' : 'list-item';
+
+    $('#gc_pagelist tr[data-parent-id="' + page_id + '"]').each(function() {
+      $(this).find('.imported-page')[func]('hidden-item').css('display', display);
+      set_value($('#gc_parent_' + $(this).attr('data-page-id')));
+    });
+  };
+
   function set_map_to_fields(elem,v,page_id){
     var to = $('#gc_import_to_'+page_id),
         to_val = to.find('input').val(),
@@ -134,7 +191,16 @@
   function set_value(elem){
     var v = elem.find('input:not(.live_filter):first').val(),
       el = elem.find('li:not(.hidden-item) a[data-value="'+v+'"]:first');
-    if(elem.not(':visible')){
+
+    var is_parent = false;
+
+    if(typeof elem.attr('id') != 'undefined') {
+      if(elem.attr('id').indexOf('gc_parent_') === 0) {
+        is_parent = true;
+      }
+    }
+
+    if(elem.not(':visible') && !is_parent){
       elem.find('input:not(.live_filter):first').val('');
     }
     if(el.length == 0){
@@ -233,10 +299,30 @@
       success: function(data){
         save.waiting.hide();
         if(typeof data.error != 'undefined'){
+          save.cur_retry++;
           alert(data.error);
           $('.gc_overlay,.gc_importing_modal').hide();
         }
         if(typeof data.success != 'undefined'){
+          save.cur_retry--;
+
+          if(typeof data.new_page_html != 'undefined') {
+
+            $('#gc_pagelist tr[data-parent-id="'+data.page_id+'"]').each(function(){
+              var el = $('#gc_parent_'+$(this).attr('data-page-id')),
+                input = el.find('input');
+
+              if($(this).find('a[data-value="'+data.new_page_id+'"]').length == 0)
+              {
+                el.find('ul').append(data.new_page_html);
+              }
+              if(input.val() == '_imported_page_') {
+                input.val(data.new_page_id);
+                set_value(el);
+              }
+            });
+          }
+
           save.cur_retry = 0;
           save.cur_counter++;
           save.progressbar.css('width',data.page_percent+'%');
@@ -273,6 +359,7 @@
         "post_type": $('#gc_import_as_'+page_id+' input').val(),
         "overwrite": $('#gc_import_to_'+page_id+' input').val(),
         "filter": $('#gc_filter_'+page_id+' input').val(),
+        "parent_id": $('#gc_parent_'+page_id+' input').val(),
         "fields": []
       };
       settings.find('> .gc_settings_field').each(function(){

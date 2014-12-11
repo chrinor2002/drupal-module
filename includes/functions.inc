@@ -1,47 +1,67 @@
 <?php
-class GatherContent_Functions {
+/**
+ * @file
+ * Class containing general functions used throughout the importing. Extended by GatherContentCurl.
+ */
 
-  var $data = array();
-  var $formatting = array();
-  var $error = '';
+class GatherContentFunctions {
 
-  function get_page_title_array($post_id){
+  public $data = array();
+  public $formatting = array();
+  public $error = '';
+
+  /**
+   * Get page title for media import page.
+   */
+  public function getPageTitleArray($post_id) {
     $data = array();
     $post = node_load($post_id);
     $title = isset($post->title) ? $post->title : '';
     $title = empty($title) ? '(no title)' : $title;
     $data['original_title'] = check_plain(strip_tags($title));
-    if(strlen($title) > 30){
-      $title = substr($title,0,27).'...';
+    if (strlen($title) > 30) {
+      $title = substr($title, 0, 27) . '...';
     }
     $data['page_title'] = $title;
     return $data;
   }
 
-  function percent($num,$total){
-    return number_format((($num / $total) * 100),2);
+  /**
+   * Return percentage of a total number.
+   */
+  public function percent($num, $total) {
+    return number_format((($num / $total) * 100), 2);
   }
 
-  function foreach_safe($arr){
-    if(is_array($arr) && count($arr) > 0){
-      return true;
+  /**
+   * Checks if variable is an array and array length is more than 0.
+   */
+  public function foreachSafe($arr) {
+    if (is_array($arr) && count($arr) > 0) {
+      return TRUE;
     }
-    return false;
+    return FALSE;
   }
 
-  function val($array,$field,$default=''){
-    if(is_array($array) && isset($array[$field])){
+  /**
+   * Check to see if key exists in array otherwise returns default param.
+   */
+  public function val($array, $field, $default = '') {
+    if (is_array($array) && isset($array[$field])) {
       return $array[$field];
     }
     return $default;
   }
 
-  function _add_media_to_entity(&$entity, $is_file_field, $file_obj, $field, $more_than_1, $field_type, $counter) {
-    if($is_file_field) {
+  /**
+   * Used during media import to add downloaded media to node.
+   */
+  public function addMediaToEntity(&$entity, $is_file_field, $file_obj, $field, $more_than_1, $field_type, $counter) {
+    if ($is_file_field) {
       $file_val = array('fid' => $file_obj->fid, 'display' => TRUE);
-      if(strpos($field_type, 'list') === 0) {
+      if (strpos($field_type, 'list') === 0) {
         $cur_val = $entity->{$field}->value();
-        if(!is_array($cur_val)) {
+        if (!is_array($cur_val)) {
           $cur_val = array();
         }
         $cur_val[] = $file_val;
@@ -53,70 +73,79 @@ class GatherContent_Functions {
     }
     else {
       $value = $entity->{$field}->value();
-      if($field_type == 'text_formatted') {
-        $value['value'] = $this->_add_media_to_content($value['value'], file_create_url($file_obj->uri), $file_obj->filename, $file_obj->filemime, $value['format'], $more_than_1, $counter);
-        if(isset($value['safe_value'])) {
+      if ($field_type == 'text_formatted') {
+        $value['value'] = $this->addMediaToContent($value['value'], file_create_url($file_obj->uri), $file_obj->filename, $file_obj->filemime, $value['format'], $more_than_1, $counter);
+        if (isset($value['safe_value'])) {
           unset($value['safe_value']);
         }
       }
       else {
-        $value = $this->_add_media_to_content($value, file_create_url($file_obj->uri), $file_obj->filename, $file_obj->filemime, 'plain_text', $more_than_1, $counter);
+        $value = $this->addMediaToContent($value, file_create_url($file_obj->uri), $file_obj->filename, $file_obj->filemime, 'plain_text', $more_than_1, $counter);
       }
       $entity->{$field}->set($value);
     }
     $entity->save();
   }
 
-  function _add_media_to_content($value, $file_url, $filename, $filemime, $filter, $more_than_1, $counter) {
+  /**
+   * Called from addMediaToEntity to insert media item into content.
+   */
+  private function addMediaToContent($value, $file_url, $filename, $filemime, $filter, $more_than_1, $counter) {
     $image_types = array('image/gif', 'image/jpeg', 'image/png');
     $image_file = in_array($filemime, $image_types);
-    $tag = '#_gc_file_name_'.$counter.'#';
+    $tag = '#_gc_file_name_' . $counter . '#';
     $html = $file_url;
-    if($filter != 'plain_text') {
-      if($image_file) {
-        $html = '<a href="'.$file_url.'"><img src="'.$file_url.'" alt="'.check_plain($filename).'" /></a>';
+    if ($filter != 'plain_text') {
+      if ($image_file) {
+        $html = '<a href="' . $file_url . '"><img src="' . $file_url . '" alt="' . check_plain($filename) . '" /></a>';
       }
       else {
-        $html = '<a href="'.$file_url.'">'.$filename.'</a>';
+        $html = '<a href="' . $file_url . '">' . $filename . '</a>';
       }
     }
 
-    $html = "\n".$html."\n";
-    if($more_than_1) {
+    $html = "\n" . $html . "\n";
+    if ($more_than_1) {
       $html .= $tag;
     }
     return str_replace($tag, $html, $value);
   }
 
-  function get_media_ajax_output($post_id,$media,$cur_post,$page_total,$total){
+
+  /**
+   * Used during media import to return output array containing file details.
+   */
+  public function getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total) {
     $cur_num = $_POST['cur_num'];
     $cur_total = $_POST['cur_total'];
 
     $next_id = $post_id;
-    if($cur_num == $page_total){
+    if ($cur_num == $page_total) {
       $page_percent = 100;
       $cur_num = 1;
       unset($media[$post_id]);
       $next_id = key($media);
-    } else {
-      $page_percent = $this->percent($cur_num,$page_total);
+    }
+    else {
+      $page_percent = $this->percent($cur_num, $page_total);
       $cur_num++;
       $media[$post_id] = $cur_post;
     }
     $media['total_files'] = $total;
-    variable_set('gathercontent_media_files',$media);
-    if($cur_total == $total){
+    variable_set('gathercontent_media_files', $media);
+    if ($cur_total == $total) {
       $next_id = $post_id;
       $page_percent = $overall_percent = '100';
-    } else {
-      $overall_percent = $this->percent($cur_total,$total);
+    }
+    else {
+      $overall_percent = $this->percent($cur_total, $total);
     }
     $cur_total++;
 
-    $data = $this->get_page_title_array($next_id);
+    $data = $this->getPageTitleArray($next_id);
 
-    if($overall_percent == 100) {
-      variable_set('gathercontent_media_files',array());
+    if ($overall_percent == 100) {
+      variable_set('gathercontent_media_files', array());
     }
 
     $out = array(

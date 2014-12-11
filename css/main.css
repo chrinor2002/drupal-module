@@ -53,19 +53,7 @@
 #gathercontent-pages-import-form #edit-select-pages,#gathercontent-pages-import-form #edit-select-pages--2 { position: relative; top: -7px }
 
 
-#gathercontent-pages-import-form .page-settings a span.caret {
-  position: relative;
-  top: 9px;
-  border-bottom: 0 none;
-}
-#gathercontent-pages-import-form .page-settings a span.caret {
-  border-top: 4px solid #000000;
-}
-#gathercontent-pages-import-form .page-settings a span.caret-up {
-  border-bottom: 4px solid #000000;
-  border-top: 0 none;
-  top: 8px;
-}.gc_settings_container {
+.gc_settings_container {
   border-top: 0 none;
 }
 .gc_settings_container > div {
@@ -81,6 +69,7 @@
 .gc_settings_header .gc_setting { float: left; display: inline-block; margin-right: 20px; }
 .gc_settings_header { padding: 0 8px }
 .gc_setting label, .gc_setting  .form-item label.option, .gc_modal label { font-weight: bold; font-size: 14px; margin-right: 5px; float: left; }
+.gc_setting label { margin-top: 3px; }
 
 .gc_modal label {
   padding-bottom: 6px;
@@ -242,7 +231,7 @@ table.sticky-header {
   left: 5px;
   width: 42px;
 }
-#edit-gathercontent-api-url { padding-left: 45px; padding-right: 130px; width: 216px;}
+#edit-gathercontent-api-url { padding-left: 48px; padding-right: 130px; width: 216px;}
 #gathercontent-login-form .form-item { position: relative; }
 #gathercontent-project-form .gc_right {
   padding-top: 18px;

@@ -1,9 +1,17 @@
 <?php
+/**
+ * @file
+ * Imports pages from GatherContent (http://gathercontent.com/) into Drupal as
+ * nodes.
+ */
 
+/**
+ * Implements hook_menu().
+ */
 function gathercontent_menu() {
   $items = array();
 
-  $path = drupal_get_path('module', 'gathercontent').'/includes';
+  $path = drupal_get_path('module', 'gathercontent') . '/includes';
 
   $items['admin/config/content/gathercontent'] = array(
     'title' => 'GatherContent',
@@ -85,6 +93,9 @@ function gathercontent_menu() {
   return $items;
 }
 
+/**
+ * Implements hook_permission().
+ */
 function gathercontent_permission() {
   return array(
     'administer gathercontent' => array(
@@ -95,38 +106,64 @@ function gathercontent_permission() {
   );
 }
 
-function gathercontent_get_obj(){
+/**
+ * Used to get GatherContentCurl object.
+ */
+function gathercontent_get_obj() {
   static $obj;
-  if(!isset($obj)){
+  if (!isset($obj)) {
     module_load_include('inc', 'gathercontent', 'includes/functions');
     module_load_include('inc', 'gathercontent', 'includes/curl');
-    $obj = new GatherContent_Curl();
+    $obj = new GatherContentCurl();
   }
   return $obj;
 }
 
-function gathercontent_check_step($step='') {
-  $checks = array('projects', 'login', 'pages', 'pages_import', 'media', 'finished');
-  $step = in_array($step,$checks) ? $step : 'projects';
-
+/**
+ * Used to get current step from the URL.
+ */
+function gathercontent_check_step($step = '') {
   $checks = array(
-    'projects' => array('fields'=>array('api_key','api_url'),'prev'=>'login'),
-    'pages' => array('fields'=>array('project_id'),'prev'=>'projects'),
-    'pages_import' => array('fields'=>array('project_id','selected_pages'),'prev'=>'projects'),
-    'media' => array('fields'=>array('project_id','selected_pages'),'prev'=>'projects'),
+    'projects',
+    'login',
+    'pages',
+    'pages_import',
+    'media',
+    'finished'
   );
 
-  if(isset($checks[$step])) {
-    $error = false;
-    foreach($checks[$step]['fields'] as $chk) {
-      if(variable_get('gathercontent_'.$chk,'') == ''){
-        $error = true;
+  $step = in_array($step, $checks) ? $step : 'projects';
+
+  $checks = array(
+    'projects' => array(
+      'fields' => array('api_key','api_url'),
+      'prev' => 'login'
+    ),
+    'pages' => array(
+      'fields' => array('project_id'),
+      'prev' => 'projects'
+    ),
+    'pages_import' => array(
+      'fields' => array('project_id','selected_pages'),
+      'prev' => 'projects'
+    ),
+    'media' => array(
+      'fields' => array('project_id','selected_pages'),
+      'prev' => 'projects'
+    ),
+  );
+
+  if (isset($checks[$step])) {
+    $error = FALSE;
+    foreach ($checks[$step]['fields'] as $chk) {
+      if (variable_get('gathercontent_' . $chk, '') == '') {
+        $error = TRUE;
       }
     }
-    if($error){
+    if ($error) {
       $step = $checks[$step]['prev'];
-      drupal_goto('admin/config/content/gathercontent'.($step == 'projects' ? '' : '/'.$step));
-      return false;
+      drupal_goto('admin/config/content/gathercontent' . ($step == 'projects' ? '' : '/' . $step));
+      return FALSE;
     }
   }
 
@@ -136,11 +173,14 @@ function gathercontent_check_step($step='') {
   drupal_add_js($path . '/js/bootstrap.min.js');
   drupal_add_js($path . '/js/main.js');
 
-  return true;
+  return TRUE;
 }
 
+/**
+ * Implements hook_theme().
+ */
 function gathercontent_theme() {
-  $path = drupal_get_path('module', 'gathercontent').'/includes/';
+  $path = drupal_get_path('module', 'gathercontent') . '/includes';
   return array(
     'gathercontent_pages_form' => array(
       'render element' => 'form',
@@ -155,6 +195,9 @@ function gathercontent_theme() {
   );
 }
 
+/**
+ * Implements hook_file_delete().
+ */
 function gathercontent_file_delete($file) {
   db_delete('gathercontent_media')->condition('fid', $file->fid)->execute();
 }

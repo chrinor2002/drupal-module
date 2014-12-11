@@ -1,5 +1,12 @@
 <?php
+/**
+ * @file
+ * Page for importing media via AJAX.
+ */
 
+/**
+ * Form constructor for displaying media import dialog.
+ */
 function gathercontent_media_form($form, &$form_state) {
   gathercontent_check_step('media');
 
@@ -10,22 +17,22 @@ function gathercontent_media_form($form, &$form_state) {
       'error_message' => t('There was a problem connecting. Please try again later'),
     ),
   ), 'setting');
+
   $path = drupal_get_path('module', 'gathercontent');
   drupal_add_js($path . '/js/media.js');
 
   $obj = gathercontent_get_obj();
 
   $media = variable_get('gathercontent_media_files');
-  if(!(is_array($media) && isset($media['total_files']) && $media['total_files'] > 0)) {
+  if (!(is_array($media) && isset($media['total_files']) && $media['total_files'] > 0)) {
     drupal_goto('admin/config/content/gathercontent/finished');
   }
   unset($media['total_files']);
   $post_id = key($media);
-  extract($obj->get_page_title_array($post_id));
-
+  extract($obj->getPageTitleArray($post_id));
 
   $form['header'] = array(
-    '#markup' => '<h2>'.t('Importing files').'</h2>',
+    '#markup' => '<h2>' . t('Importing files') . '</h2>',
   );
 
   $form['message'] = array(
@@ -37,7 +44,7 @@ function gathercontent_media_form($form, &$form_state) {
   $form['current_page']['label'] = array(
     '#prefix' => '<label>',
     '#suffix' => '</label>',
-    '#markup' => t('Page:').' <span id="gc_page_title" title="'.$original_title.'">'.$page_title.'</span><img src="'.file_create_url($path.'/images/ajax-loader-grey.gif').'" alt="" />',
+    '#markup' => t('Page:') . ' <span id="gc_page_title" title="' . $original_title . '">' . $page_title . '</span><img src="' . file_create_url($path . '/images/ajax-loader-grey.gif') . '" alt="" />',
   );
 
   $form['current_page']['progress_bar'] = array(
@@ -64,9 +71,12 @@ function gathercontent_media_form($form, &$form_state) {
   return $form;
 }
 
+/**
+ * AJAX function to process individual media item.
+ */
 function gathercontent_ajax_media_download() {
   $out = array('error' => t('Verification failed, please refreshing the page and try again.'));
-  if(isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest") {
+  if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest") {
     $obj = gathercontent_get_obj();
     $cur_num = $_POST['cur_num'];
     $cur_total = $_POST['cur_total'];
@@ -77,7 +87,7 @@ function gathercontent_ajax_media_download() {
     unset($media['total_files']);
 
     $post_id = key($media);
-    if($obj->foreach_safe($media[$post_id]['files'])) {
+    if(is_array($media[$post_id]['files']) && count($media[$post_id]['files']) > 0) {
       $cur_post = $media[$post_id];
       $page_total = $cur_post['total_files'];
       $more_than_1 = (count($cur_post['files'][0]) > 1);
@@ -87,43 +97,43 @@ function gathercontent_ajax_media_download() {
       $node = node_load($post_id);
       $entity = entity_metadata_wrapper('node', $node);
 
-      if(!$more_than_1) {
+      if (!$more_than_1) {
         array_shift($cur_post['files']);
       }
       $file_obj = db_select('gathercontent_media', 'g')
-                    ->fields('f',array('fid','filename','uri', 'filemime'))
+                    ->fields('f', array('fid', 'filename', 'uri', 'filemime'))
                     ->condition('g.gid', $file['id']);
       $file_obj->join('file_managed', 'f', 'f.fid = g.fid');
       $file_obj = $file_obj->execute();
-      if($file_obj->rowCount() > 0) {
+      if ($file_obj->rowCount() > 0) {
         $file_obj = $file_obj->fetchObject();
-        $obj->_add_media_to_entity($entity, $is_file_field, $file_obj, $file['field'], $more_than_1, $field_type, $file['counter']);
+        $obj->addMediaToEntity($entity, $is_file_field, $file_obj, $file['field'], $more_than_1, $field_type, $file['counter']);
 
-        $out = $obj->get_media_ajax_output($post_id,$media,$cur_post,$page_total,$total);
-        $out['success'] = true;
+        $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total);
+        $out['success'] = TRUE;
       }
       else {
         $dir = 'public://';
-        if(isset($field['file_directory'])) {
+        if (isset($field['file_directory'])) {
           $dir .= $field['file_directory'];
         }
         $filename = $file['original_filename'];
         if (substr($dir, -1) != '/') {
           $dir .= '/';
         }
-        if(!file_prepare_directory($dir, FILE_CREATE_DIRECTORY)) {
+        if (!file_prepare_directory($dir, FILE_CREATE_DIRECTORY)) {
           watchdog('file', 'The upload directory %directory for the file field !name could not be created or is not accessible. A newly uploaded file could not be saved in this directory as a consequence, and the upload was canceled.', array('%directory' => $dir, '!name' => $element['#field_name']));
         }
         $destination = file_destination($dir . $filename, FILE_EXISTS_RENAME);
-        $resp = $obj->_curl('https://gathercontent.s3.amazonaws.com/'.$file['filename']);
-        if($resp['httpcode'] == 200) {
-          $fp = fopen($destination,'w');
-          if(!$fp) {
+        $resp = $obj->curl('https://gathercontent.s3.amazonaws.com/' . $file['filename']);
+        if ($resp['httpcode'] == 200) {
+          $fp = fopen($destination, 'w');
+          if (!$fp) {
             $real_destination = drupal_realpath($destination);
-            $fp = fopen($real_destination,'w');
+            $fp = fopen($real_destination, 'w');
           }
-          if($fp) {
-            fwrite($fp,$resp['response']);
+          if ($fp) {
+            fwrite($fp, $resp['response']);
             fclose($fp);
 
             global $user;
@@ -142,53 +152,53 @@ function gathercontent_ajax_media_download() {
             );
             drupal_write_record('gathercontent_media', $gid);
 
-            $obj->_add_media_to_entity($entity, $is_file_field, $new_file, $file['field'], $more_than_1, $field_type, $file['counter']);
+            $obj->addMediaToEntity($entity, $is_file_field, $new_file, $file['field'], $more_than_1, $field_type, $file['counter']);
 
-            $out = $obj->get_media_ajax_output($post_id,$media,$cur_post,$page_total,$total);
-            $out['success'] = true;
+            $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total);
+            $out['success'] = TRUE;
           }
           else {
-            if($retry == '1'){
-              $out = $obj->get_media_ajax_output($post_id,$media,$cur_post,$page_total,$total);
-              $out['success'] = false;
-              $out['error'] = sprintf(t('There was an error with the file (%s)'),$new_file);
+            if ($retry == '1') {
+              $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total);
+              $out['success'] = FALSE;
+              $out['error'] = sprintf(t('There was an error with the file (%s)'), $new_file);
             }
             else {
               $out = array(
-                'success'=>false,
-                'retry'=>true,
-                'msg'=>sprintf(t('Retrying to download (%s)'),$file['original_filename'])
+                'success' => FALSE,
+                'retry' => TRUE,
+                'msg' => sprintf(t('Retrying to download (%s)'), $file['original_filename'])
               );
             }
           }
         }
         else {
-          if($retry == '1'){
-            $out = $obj->get_media_ajax_output($post_id,$media,$cur_post,$page_total,$total);
-            $out['success'] = false;
-            $out['error'] = sprintf(t('There was an error with the file (%s)'),$new_file);
+          if ($retry == '1') {
+            $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total);
+            $out['success'] = FALSE;
+            $out['error'] = sprintf(t('There was an error with the file (%s)'), $new_file);
           }
           else {
             $out = array(
-              'success'=>false,
-              'retry'=>true,
-              'msg'=>sprintf(t('Retrying to download (%s)'),$file['original_filename'])
+              'success' => FALSE,
+              'retry' => TRUE,
+              'msg' => sprintf(t('Retrying to download (%s)'), $file['original_filename'])
             );
           }
         }
       }
     }
     else {
-      if($retry == '1'){
-        $out = $obj->get_media_ajax_output($post_id,$media,$cur_post,$page_total,$total);
-        $out['success'] = false;
-        $out['error'] = sprintf(t('Failed to download the file (%s)'),$file['original_filename']);
+      if ($retry == '1') {
+        $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total);
+        $out['success'] = FALSE;
+        $out['error'] = sprintf(t('Failed to download the file (%s)'), $file['original_filename']);
       }
       else {
         $out = array(
-          'success'=>false,
-          'retry'=>true,
-          'msg'=>sprintf(t('Retrying to download (%s)'),$file['original_filename'])
+          'success' => FALSE,
+          'retry' => TRUE,
+          'msg' => sprintf(t('Retrying to download (%s)'), $file['original_filename'])
         );
       }
     }

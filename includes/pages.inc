@@ -1,20 +1,27 @@
 <?php
+/**
+ * @file
+ * Contains selecting pages to process.
+ */
 
+/**
+ * Form constructor for selecting pages.
+ */
 function gathercontent_pages_form($form, &$form_state) {
   gathercontent_check_step('pages');
   $obj = gathercontent_get_obj();
-  $obj->get_projects();
-  $obj->get_states();
-  $obj->get_pages();
-  $obj->get_state_dropdown();
-  $obj->get_projects_dropdown();
+  $obj->getProjects();
+  $obj->getStates();
+  $obj->getPages();
+  $obj->getStateDropdown();
+  $obj->getProjectsDropdown();
 
   $form['page_header'] = array(
     '#prefix' => '<div class="gc_page_header gc_cf">',
     '#suffix' => '</div>',
   );
   $form['page_header']['title'] = array(
-    '#markup' => '<h2>'.check_plain(t('Choose pages to import')).'</h2>',
+    '#markup' => '<h2>' . check_plain(t('Choose pages to import')) . '</h2>',
   );
   $form['page_header']['account_link'] = array(
     '#type' => 'link',
@@ -36,18 +43,16 @@ function gathercontent_pages_form($form, &$form_state) {
     '#markup' => $obj->data['state_dropdown'],
   );
   $form['page_options']['live_filter']['filter_input'] = array(
-    '#markup' => '<input type="text" name="search" id="gc_live_filter" placeholder="'.check_plain(t('Search...')).'" />',
+    '#markup' => '<input type="text" name="search" id="gc_live_filter" placeholder="' . check_plain(t('Search...')) . '" />',
   );
   $form['page_options']['live_filter']['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Configure selected pages'),
   );
 
-
   $form['page_list'] = array();
   $form['pages'] = array();
-  $form = $obj->generate_form_settings($form,$obj->pages);
-
+  $form = $obj->generateFormSettings($form, $obj->pages);
 
   $form['page_options_bottom'] = array(
     '#prefix' => '<div class="gc_search_pages gc_search_bottom gc_cf"><div class="gc_right">',
@@ -59,6 +64,9 @@ function gathercontent_pages_form($form, &$form_state) {
   return $form;
 }
 
+/**
+ * Form theme handler for gathercontent_pages_form().
+ */
 function theme_gathercontent_pages_form($variables) {
   $form = $variables['form'];
   $rows = array();
@@ -89,7 +97,6 @@ function theme_gathercontent_pages_form($variables) {
     '<input type="checkbox" class="gc_toggle_all" />'
   );
 
-
   $output = drupal_render($form['page_header']);
   $output .= drupal_render($form['page_options']);
   $output .= theme('table', array(
@@ -102,17 +109,20 @@ function theme_gathercontent_pages_form($variables) {
   return $output;
 }
 
+/**
+ * Form submission handler for gathercontent_pages_form().
+ */
 function gathercontent_pages_form_submit($form, &$form_state) {
   $selected_pages = array();
-  if(isset($form_state['values']['pages'])){
-    foreach($form_state['values']['pages'] as $id => $val) {
-      if($val > 0){
+  if (isset($form_state['values']['pages'])) {
+    foreach ($form_state['values']['pages'] as $id => $val) {
+      if ($val > 0) {
         $selected_pages[] = $id;
       }
     }
   }
-  if(count($selected_pages) > 0) {
-    variable_set('gathercontent_selected_pages',$selected_pages);
+  if (count($selected_pages) > 0) {
+    variable_set('gathercontent_selected_pages', $selected_pages);
     drupal_goto('admin/config/content/gathercontent/pages_import');
   }
   else {
