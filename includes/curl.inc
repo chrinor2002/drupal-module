@@ -552,26 +552,6 @@ class GatherContentCurl extends GatherContentFunctions {
           ),
         );
       }
-      /*
-      print_r($config);exit;
-      $fields = $this->val($config, 'content', array());
-      $meta = $this->val($config, 'meta', array());
-      if ($show_settings && (count($fields) == 0 && ($meta === FALSE || count($meta) == 0))) {
-        $form['pages'][$id] = array(
-          '#markup' => '',
-        );
-      }
-      else {
-        $form['pages'][$id] = array(
-          '#type' => 'checkbox',
-          '#return_value' => $id,
-          '#default_value' => ($show_settings ? $id : 0),
-          '#parents' => array(
-            'pages',
-            $id,
-          ),
-        );
-      }*/
       if ($show_settings) {
         $cur_settings = array();
         if (isset($this->data['saved_settings'][$id])) {
@@ -654,6 +634,7 @@ class GatherContentCurl extends GatherContentFunctions {
               }
             }
           }
+          unset($config['field_count']);
           foreach($config as $tab_name => $tab) {
             foreach($tab['elements'] as $field) {
               $value = $this->val($field_settings, $tab_name.'_'.$field['name']);
