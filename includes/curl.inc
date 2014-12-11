@@ -33,6 +33,7 @@ class GatherContentCurl extends GatherContentFunctions {
     if ($obj->config != '') {
       $config = json_decode(base64_decode($obj->config));
       $new_config = array();
+      $total_fields = 0;
       if ($this->foreachSafe($config)) {
 
         foreach ($config as $tab_pane) {
@@ -115,9 +116,17 @@ class GatherContentCurl extends GatherContentFunctions {
             }
           }
 
-          $new_config[strtolower($tab_pane->label)] = $new_fields;
+          $total_fields += count($new_fields);
+
+          $new_config[strtolower($tab_pane->name)] = array(
+            'label' => $tab_pane->label,
+            'elements' => $new_fields
+          );
         }
       }
+
+      $new_config['field_count'] = $total_fields;
+
       return $new_config;
     }
     return array();
@@ -524,6 +533,27 @@ class GatherContentCurl extends GatherContentFunctions {
       );
 
       $config = $this->getFieldConfig($page);
+
+      $field_count = $this->val($config, 'field_count', 0);
+
+      if($show_settings && $field_count == 0) {
+        $form['pages'][$id] = array(
+          '#markup' => '',
+        );
+      }
+      else {
+        $form['pages'][$id] = array(
+          '#type' => 'checkbox',
+          '#return_value' => $id,
+          '#default_value' => ($show_settings ? $id : 0),
+          '#parents' => array(
+            'pages',
+            $id,
+          ),
+        );
+      }
+      /*
+      print_r($config);exit;
       $fields = $this->val($config, 'content', array());
       $meta = $this->val($config, 'meta', array());
       if ($show_settings && (count($fields) == 0 && ($meta === FALSE || count($meta) == 0))) {
@@ -541,13 +571,13 @@ class GatherContentCurl extends GatherContentFunctions {
             $id,
           ),
         );
-      }
+      }*/
       if ($show_settings) {
         $cur_settings = array();
         if (isset($this->data['saved_settings'][$id])) {
           $cur_settings = $this->data['saved_settings'][$id];
         }
-        if (count($fields) > 0 || ($meta !== FALSE && count($meta) > 0)) {
+        if ($field_count > 0) {
           $parent_id = $page->parent_id;
           $this->parentIds[$page->id] = $page->parent_id;
           $parent_id_value = $this->getParentPageId($parent_id, $selected, $cur_settings);
@@ -614,34 +644,21 @@ class GatherContentCurl extends GatherContentFunctions {
           if (count($field_settings) > 0) {
             foreach ($field_settings as $name => $value) {
               list($tab,$field_name) = explode('_', $name, 2);
-              if ($tab == 'content' && isset($fields[$field_name])) {
-                $tmp = $this->fieldSettings($id, $fields[$field_name], $tab, '', $value);
-                if ($tmp != '') {
+
+              if(isset($config[$tab]) && isset($config[$tab]['elements'][$field_name])) {
+                $tmp = $this->fieldSettings($id, $config[$tab]['elements'][$field_name], $tab, $config[$tab]['label'], $value);
+                if($tmp != '') {
                   $form['settings'][$id]['fields'][] = $tmp;
                 }
-                unset($fields[$field_name]);
-              }
-              elseif ($tab == 'meta' && $meta !== FALSE && isset($meta[$field_name])) {
-                $tmp = $this->fieldSettings($id, $meta[$field_name], $tab, ' (Meta)', $value);
-                if ($tmp != '') {
-                  $form['settings'][$id]['fields'][] = $tmp;
-                }
-                unset($meta[$field_name]);
+                unset($config[$tab]['elements'][$field_name]);
               }
             }
           }
-          foreach ($fields as $field) {
-            $value = $this->val($field_settings, 'content_' . $field['name']);
-            $tmp = $this->fieldSettings($id, $field, 'content', '', $value);
-            if ($tmp != '') {
-              $form['settings'][$id]['fields'][] = $tmp;
-            }
-          }
-          if ($meta !== FALSE) {
-            foreach ($meta as $field) {
-              $value = $this->val($field_settings, 'meta_' . $field['name']);
-              $tmp = $this->fieldSettings($id, $field, 'meta', ' (Meta)', $value);
-              if ($tmp != '') {
+          foreach($config as $tab_name => $tab) {
+            foreach($tab['elements'] as $field) {
+              $value = $this->val($field_settings, $tab_name.'_'.$field['name']);
+              $tmp = $this->fieldSettings($id, $field, $tab_name, $tab['label'], $value);
+              if($tmp != '') {
                 $form['settings'][$id]['fields'][] = $tmp;
               }
             }
@@ -664,7 +681,7 @@ class GatherContentCurl extends GatherContentFunctions {
   /**
    * Generate individual field options.
    */
-  private function fieldSettings($id, $field, $tab = 'content', $name_suffix = '', $val = '') {
+  private function fieldSettings($id, $field, $tab = 'content', $tab_label = '', $val = '') {
     if ($field['type'] == 'section') {
       return '';
     }
@@ -678,7 +695,7 @@ class GatherContentCurl extends GatherContentFunctions {
       '#prefix' => '<div class="gc_settings_field gc_cf" data-field-tab="' . $tab . '" id="field_' . $fieldid . '"><div class="gc_move_field"></div>',
       '#suffix' => '</div>',
       'label' => array(
-        '#markup' => '<div class="gc_field_name gc_left">' . check_plain($field['label']) . $name_suffix . '</div>',
+        '#markup' => '<div class="gc_field_name gc_left"><div class="gc_tab_name gc_tooltip" title="' . t('Tab') . '">' . check_plain($tab_label) . '</div>' . check_plain($field['label']) . '</div>',
       ),
       'map_to' => array(
         '#type' => 'hidden',

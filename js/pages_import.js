@@ -2,6 +2,8 @@
   var page_loaded = false;
   $(document).ready(function(){
 
+    $('.gc_tooltip').tooltip();
+
     $('tr[data-page-id]').each(function(){
       var parent_id = $(this).attr('data-parent-id'),
         page_id = $(this).attr('data-page-id'),

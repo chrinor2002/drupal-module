@@ -233,8 +233,6 @@ function gathercontent_import_page() {
 
       $config = $obj->getFieldConfig($page, $obj->val($obj->files, $page_id, array()));
 
-      $custom_fields = $obj->val($config, 'content', array());
-      $meta_fields = $obj->val($config, 'meta', array());
       $fields = $obj->val($gc, 'fields', array());
 
       $save_settings = array(
@@ -281,11 +279,8 @@ function gathercontent_import_page() {
             $save_settings['fields'][$tab . '_' . $field_name] = $map_to;
             continue;
           }
-          elseif ($tab == 'meta') {
-            $field = $meta_fields[$field_name];
-          }
-          elseif ($tab == 'content') {
-            $field = $custom_fields[$field_name];
+          elseif (isset($config[$tab]) && isset($config[$tab]['elements'][$field_name])) {
+            $field = $config[$tab]['elements'][$field_name];
           }
           else {
             continue;
