@@ -72,6 +72,8 @@ class GatherContentCurl extends GatherContentFunctions {
                     $val = html_entity_decode($val);
                     $val = trim(preg_replace('/\s+/', ' ', $val));
                     $val = preg_replace("/<p>\s/m", "<p>", $val);
+                    $val = preg_replace('/<mark[^>]*>/i', '', $val);
+                    $val = preg_replace('/<\/mark>/i', '', $val);
                   }
                   break;
 
