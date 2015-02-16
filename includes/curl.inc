@@ -254,9 +254,11 @@ class GatherContentCurl extends GatherContentFunctions {
         $default = $type;
       }
 
-      $options = menu_parent_options(menu_get_menus(), $type, $type);
-      if (!empty($options)) {
-        $this->hierarchical[$type] = TRUE;
+      if(function_exists('menu_parent_options')) {
+        $options = menu_parent_options(menu_get_menus(), $type, $type);
+        if (!empty($options)) {
+          $this->hierarchical[$type] = TRUE;
+        }
       }
 
       if ($info->has_title == TRUE) {
@@ -344,20 +346,22 @@ class GatherContentCurl extends GatherContentFunctions {
     </li>
     <li class="imported-page">
       <a href="#" data-value="_imported_page_">' . t('Parent Being Imported') . '</a>
-    </li>
+    </li>';
+    if(function_exists('menu_parent_options')) {
+      $html .= '
     <li class="divider"></li>';
 
-    $types = array_keys($this->hierarchical);
-    foreach ($types as $type) {
-      $options = menu_parent_options(menu_get_menus(), $type, $type);
+      $types = array_keys($this->hierarchical);
+      foreach ($types as $type) {
+        $options = menu_parent_options(menu_get_menus(), $type, $type);
 
-      foreach ($options as $id => $page_name) {
-        $html .= '
-    <li data-post-type="' . $type . '">
-      <a href="#" data-value="' . $id . '">' . check_plain($page_name) . '</a>
-    </li>';
+        foreach ($options as $id => $page_name) {
+          $html .= '
+      <li data-post-type="' . $type . '">
+        <a href="#" data-value="' . $id . '">' . check_plain($page_name) . '</a>
+      </li>';
+        }
       }
-
     }
 
     $this->data['parent_select'] = $html;
