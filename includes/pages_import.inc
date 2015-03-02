@@ -243,24 +243,43 @@ function gathercontent_import_page() {
         'fields' => array(),
       );
 
+      $post_type = gathercontent_get_post_type($save_settings['post_type']);
+      $entity_info = entity_get_info($post_type[0]);
+      $label_key = 'label';
+      if(isset($entity_info['entity keys']['label'])){
+        $label_key = $entity_info['entity keys']['label'];
+      }
+
       $create_new = TRUE;
       if ($save_settings['overwrite'] > 0) {
-        $node = node_load($save_settings['overwrite']);
-        if ($node !== FALSE) {
+        $loaded_entities = entity_load($post_type[0], array($save_settings['overwrite']));
+        if($loaded_entities && count($loaded_entities) > 0){
           $create_new = FALSE;
-          $entity = entity_metadata_wrapper('node', $node);
+          $old_entity = array_shift($loaded_entities);
+          $entity = entity_metadata_wrapper($post_type[0], $old_entity);
         }
       }
       if ($create_new === TRUE) {
-        $e = entity_create('node', array(
-          'type' => $save_settings['post_type'],
+        $values = array(
+          'uid' => $GLOBALS['user']->uid,
+        );
+        if(isset($entity_info['entity keys']['bundle'])){
+          $values[$entity_info['entity keys']['bundle']] = $post_type[1];
+        }
+        if($post_type[0] == 'taxonomy_term'){
+          $vocab_info = entity_get_info('taxonomy_vocabulary');
+          $v = taxonomy_vocabulary_machine_name_load($post_type[1]);
+          $values['vid'] = $v->{$vocab_info['entity keys']['id']};
+          $values['format'] = $save_settings['filter'];
+        }
+        $e = entity_create($post_type[0], $values);
+        $entity = entity_metadata_wrapper($post_type[0], $e, array(
+          'bundle' => $post_type[1],
         ));
-        $e->uid = $GLOBALS['user']->uid;
-        $entity = entity_metadata_wrapper('node', $e);
       }
 
       if ($save_settings['overwrite'] == 0) {
-        $entity->title->set($page->name);
+        $entity->{$label_key}->set($page->name);
       }
 
       $field_values = array();
@@ -295,7 +314,7 @@ function gathercontent_import_page() {
                 $new_files = array();
                 $dir = '';
                 if (isset($cur_field['property info']['file'])) {
-                  $info = field_info_instance('node', $map_to, $save_settings['post_type']);
+                  $info = field_info_instance($post_type[0], $map_to, $post_type[1]);
                   if (isset($info['settings']['file_directory'])) {
                     $dir = $info['settings']['file_directory'];
                   }
@@ -310,7 +329,9 @@ function gathercontent_import_page() {
                     'file_directory' => $dir,
                     'counter' => $file_counter,
                     'filter' => $save_settings['filter'],
-                    'node_type' => $save_settings['post_type'],
+                    //'node_type' => $save_settings['post_type'],
+                    'entity_type' => $post_type[0],
+                    'entity_bundle' => $post_type[1],
                     'field_type' => $cur_field['type'],
                     'is_file_field' => isset($cur_field['property info']['file']),
                   );
@@ -330,7 +351,7 @@ function gathercontent_import_page() {
           }
 
           if ($map_to == 'title') {
-            $entity->title->set(strip_tags($field['value']));
+            $entity->{$label_key}->set(strip_tags($field['value']));
           }
           elseif (!empty($field['value'])) {
             if (isset($cur_field['property info']['file'])) {
@@ -476,7 +497,7 @@ function gathercontent_import_page() {
       $save_settings['overwrite'] = $entity->getIdentifier();
 
       $entity_uri = entity_uri($entity->type(), $entity->value());
-      $mlid = gathercontent_create_menu_item($entity->title->value(), $save_settings['parent_id'], $entity_uri['path']);
+      $mlid = gathercontent_create_menu_item($entity->{$label_key}->value(), $save_settings['parent_id'], $entity_uri['path']);
 
       $media = variable_get('gathercontent_media_files');
       if (!isset($media['total_files'])) {
@@ -508,7 +529,7 @@ function gathercontent_import_page() {
         'redirect_url' => ($media['total_files'] > 0 ? 'media' : 'finished'),
         'page_id' => $page_id,
         'new_page_id'   => $mlid,
-        'new_page_html' => '<li data-post-type="' . $save_settings['post_type'] . '"><a href="#" title="' . check_plain($entity->title->value()) . '" data-value="' . $mlid . '">' . check_plain($entity->title->value()) . '</a></li>',
+        'new_page_html' => '<li data-post-type="' . $save_settings['post_type'] . '"><a href="#" title="' . check_plain($entity->{$label_key}->value()) . '" data-value="' . $mlid . '">' . check_plain($entity->{$label_key}->value()) . '</a></li>',
       );
     }
     else {

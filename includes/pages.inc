@@ -14,6 +14,7 @@ function gathercontent_pages_form($form, &$form_state) {
   $obj->getStates();
   $obj->getPages();
   $obj->getStateDropdown();
+  $obj->getLevelDropdown();
   $obj->getProjectsDropdown();
 
   $form['page_header'] = array(
@@ -41,6 +42,9 @@ function gathercontent_pages_form($form, &$form_state) {
   );
   $form['page_options']['live_filter']['state_dropdown'] = array(
     '#markup' => $obj->data['state_dropdown'],
+  );
+  $form['page_options']['live_filter']['level_dropdown'] = array(
+    '#markup' => $obj->data['level_dropdown'],
   );
   $form['page_options']['live_filter']['filter_input'] = array(
     '#markup' => '<input type="text" name="search" id="gc_live_filter" placeholder="' . check_plain(t('Search...')) . '" />',

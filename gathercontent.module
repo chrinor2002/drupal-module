@@ -93,6 +93,14 @@ function gathercontent_menu() {
   return $items;
 }
 
+function gathercontent_get_post_type($input){
+  $entity_key = explode(':', $input);
+  return $entity_key;
+}
+function gathercontent_put_post_type($entity_type, $bundle){
+  return "$entity_type:$bundle";
+}
+
 /**
  * Implements hook_permission().
  */

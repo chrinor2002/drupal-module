@@ -14,6 +14,7 @@ class GatherContentCurl extends GatherContentFunctions {
   private $defaultFilter = '';
   private $idsUsed = array();
   private $hasTitles = array();
+  private $hasDescriptions = array();
 
   /**
    * Return parent id associated with a specific page.
@@ -234,13 +235,40 @@ class GatherContentCurl extends GatherContentFunctions {
         </li>';
       }
     }
-    $this->data['state_dropdown'] = $this->dropdownHtml('<i class="icon-filter"></i> <span>' . t('All') . '</span>', $html);
+    $this->data['state_dropdown'] = $this->dropdownHtml('<i class="icon-filter"></i> <span>' . t('All') . '</span>', $html, FALSE, '', 'filter-state-dropdown');
+  }
+
+  /**
+   * Get workflow state dropdown.
+   */
+  public function getLevelDropdown() {
+    $html = '';
+    if ($this->foreachSafe($this->data['states'])) {
+
+      $html .= '<li><a' . drupal_attributes(array(
+        'data-page-level' => 0,
+        'href' => '#page-level',
+      )) . '>Root</a></li>';
+
+      for($i = 1; $i < 10; $i++) {
+      $html .= '<li><a' . drupal_attributes(array(
+        'data-page-level' => $i,
+        'href' => '#page-level',
+      )) . '>'.$i.'</a></li>';
+      }
+    }
+    $this->data['level_dropdown'] = $this->dropdownHtml('<span>9</span>', $html, FALSE, '', 'filter-page-level');
   }
 
   /**
    * List post types.
    */
   public function getPostTypes() {
+    // use only fieldable entities
+    $entities = array_filter(entity_get_info(), function($item){
+      return $item['fieldable'];
+    });
+
     $post_types = node_type_get_types();
 
     $html = '';
@@ -248,29 +276,45 @@ class GatherContentCurl extends GatherContentFunctions {
     $default = '';
 
     $new_post_types = array();
+    
+    foreach($entities as $entity_type => $entity_type_info){
+      $bundles = $entity_type_info['bundles'];
+      foreach($bundles as $bundle_type => $info){
+        $type = gathercontent_put_post_type($entity_type, $bundle_type);
+        $label = t("@entity_type: @label", array(
+          '@entity_type' => $entity_type_info['label'],
+          '@label' => $info['label'],
+        ));
 
-    foreach ($post_types as $type => $info) {
-      if ($default == '') {
-        $default = $type;
-      }
-
-      if(function_exists('menu_parent_options')) {
-        $options = menu_parent_options(menu_get_menus(), $type, $type);
-        if (!empty($options)) {
-          $this->hierarchical[$type] = TRUE;
+        if ($default == '') {
+          $default = $type;
         }
-      }
 
-      if ($info->has_title == TRUE) {
-        $this->hasTitles[$type] = $info->title_label;
-      }
+        if(function_exists('menu_parent_options')) {
+          $options = menu_parent_options(menu_get_menus(), $type, $type);
+          if (!empty($options)) {
+            $this->hierarchical[$type] = TRUE;
+          }
+        }
 
-      $html .= '
-      <li>
-        <a data-value="' . check_plain($type) . '" href="#">' . $info->name . '</a>
-      </li>';
-      $new_post_types[$type] = $info->name;
+        if($entity_type == 'node'){
+          $type_info = $post_types[$bundle_type];
+          if ($type_info->has_title == TRUE) {
+            $this->hasTitles[$type] = $type_info->title_label;
+          }
+        }
+        if($entity_type == 'taxonomy_term'){
+          $this->hasDescriptions[$type] = t('Term Description');
+        }
+
+        $html .= '
+        <li>
+          <a data-value="' . check_plain($type) . '" href="#">' . $label . '</a>
+        </li>';
+        $new_post_types[$type] = $label;
+      }
     }
+
     $this->post_types = $new_post_types;
     $this->data['post_types_dropdown'] = $html;
     $this->default_post_type = $default;
@@ -378,22 +422,29 @@ class GatherContentCurl extends GatherContentFunctions {
     $html = '';
 
     foreach ($this->post_types as $name => $title) {
-      $nodes = db_select('node')
-                ->fields('node', array('nid', 'title'))
-                ->condition('type', $name, '=')
-                ->execute()
-                ->fetchAllKeyed();
-      foreach ($nodes as $id => $node) {
-        if (empty($node)) {
-          $node = t('(no title)');
+      $entity_key = gathercontent_get_post_type($name);
+      $entity_info = entity_get_info($entity_key[0]);
+
+      $efq = new EntityFieldQuery();
+      $efq->entityCondition('entity_type', $entity_key[0]);
+      $efq->entityCondition('bundle', $entity_key[1]);
+      $result = $efq->execute();
+
+      if(isset($result[$entity_key[0]])){
+        $entities = entity_load($entity_key[0], array_keys($result[$entity_key[0]]));
+        foreach($entities as $id => $entity){
+          $title = t('(no title)');
+          if(isset($entity_info['entity keys']['label'])){
+            $title = $entity->{$entity_info['entity keys']['label']};
+          }
+          $title_text = $title;
+          if (strlen($title) > 30) {
+            $title_text = substr($title, 0, 30) . '...';
+          }
+          $html .= '
+            <li data-post-type="' . $name . '"><a href="#" data-value="' . $id . '" title="' . check_plain($title) . '">';
+          $html .= $title_text . '</a></li>';
         }
-        $title_text = $node;
-        if (strlen($title_text) > 30) {
-          $title_text = substr($title_text, 0, 30) . '...';
-        }
-        $html .= '
-    <li data-post-type="' . $name . '"><a href="#" data-value="' . $id . '" title="' . check_plain($node) . '">';
-        $html .= $title_text . '</a></li>';
       }
     }
 
@@ -430,7 +481,8 @@ class GatherContentCurl extends GatherContentFunctions {
         <input type="text" class="live_filter" placeholder="' . check_plain(t('Search...')) . '" />
       </li>';
     foreach ($this->post_types as $name => $title) {
-      $instances = field_info_instances('node', $name);
+      $entity_info = gathercontent_get_post_type($name);
+      $instances = field_info_instances($entity_info[0], $entity_info[1]);
       if (isset($instances['body'])) {
         unset($instances['body']);
         $html .= '
@@ -443,6 +495,12 @@ class GatherContentCurl extends GatherContentFunctions {
         $html .= '
       <li data-post-type="' . $name . '" data-search="' . check_plain($this->hasTitles[$name]) . '">
         <a href="#" data-value="title">' . $this->hasTitles[$name] . '</a>
+      </li>';
+      }
+      if (isset($this->hasDescriptions[$name])) {
+        $html .= '
+      <li data-post-type="' . $name . '" data-search="' . check_plain($this->hasDescriptions[$name]) . '">
+        <a href="#" data-value="description">' . $this->hasDescriptions[$name] . '</a>
       </li>';
       }
       foreach ($instances as $field => $info) {
@@ -467,9 +525,9 @@ class GatherContentCurl extends GatherContentFunctions {
   /**
    * Generate dropdown html for a given object.
    */
-  private function dropdownHtml($val, $html, $input = FALSE, $real_val = '') {
+  private function dropdownHtml($val, $html, $input = FALSE, $real_val = '', $id='') {
     return '
-        <div class="btn-group has_input">
+        <div class="btn-group has_input"'.($id ? ' id="'.$id.'"': '').'>
             <a class="btn dropdown-toggle" data-toggle="dropdown" href="#">
                 ' . $val . '
                 <span class="caret"></span>' . ($input !== FALSE ? '<input type="hidden" name="' . $input . '" value="' . esc_attr($real_val) . '" />' : '') . '
@@ -531,7 +589,7 @@ class GatherContentCurl extends GatherContentFunctions {
       }
       $form['page_list'][$id] = array(
         'page_state' => array(
-          '#markup' => '<span data-page-state="' . $page->custom_state_id . '" class="page-status page-state-color-' . $this->data['states'][$page->custom_state_id]->color_id . '"></span>',
+          '#markup' => '<span data-page-state="' . $page->custom_state_id . '" data-page-level="'.$index.'" class="page-status page-level page-state-color-' . $this->data['states'][$page->custom_state_id]->color_id . '"></span>',
         ),
         'page_name' => array(
           '#markup' => $prefix . '<span>' . $page->name . '</span>',
@@ -542,12 +600,12 @@ class GatherContentCurl extends GatherContentFunctions {
 
       $field_count = $this->val($config, 'field_count', 0);
 
-      if($show_settings && $field_count == 0) {
+      /*if($show_settings && $field_count == 0) {
         $form['pages'][$id] = array(
           '#markup' => '',
         );
       }
-      else {
+      else {*/
         $form['pages'][$id] = array(
           '#type' => 'checkbox',
           '#return_value' => $id,
@@ -557,13 +615,13 @@ class GatherContentCurl extends GatherContentFunctions {
             $id,
           ),
         );
-      }
+      //}
       if ($show_settings) {
         $cur_settings = array();
         if (isset($this->data['saved_settings'][$id])) {
           $cur_settings = $this->data['saved_settings'][$id];
         }
-        if ($field_count > 0) {
+        //if ($field_count > 0) {
           $parent_id = $page->parent_id;
           $this->parentIds[$page->id] = $page->parent_id;
           $parent_id_value = $this->getParentPageId($parent_id, $selected, $cur_settings);
@@ -650,12 +708,12 @@ class GatherContentCurl extends GatherContentFunctions {
               }
             }
           }
-        }
+        /*}
         else {
           $form['settings'][$id] = array(
             '#markup' => '<div class="alert alert-info">' . sprintf(t('This page is empty. You can %sadd some content to this page in GatherContent%s.'), '<a href="https://' . variable_get('gathercontent_api_url') . '.gathercontent.com/pages/view/' . variable_get('gathercontent_project_id') . '/' . $id . '" target="_blank">', '</a>') . '</div>',
           );
-        }
+        }*/
       }
       if (isset($page->children) && count($page->children) > 0) {
         $form = $this->generateFormSettings($form, $page->children, $index, $show_settings);

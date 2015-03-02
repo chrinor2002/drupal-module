@@ -9,7 +9,7 @@
       $('.gc_toggle_all').prop('checked',checked);
       $('#gc_pagelist td > div > :checkbox').prop('checked',false).filter(':visible').prop('checked',checked).trigger('change');
     });
-    $('.gc_search_pages .gc_right .dropdown-menu a').click(function(e){
+    $('.gc_search_pages .gc_right #filter-state-dropdown .dropdown-menu a').click(function(e){
       e.preventDefault();
       if($(this).attr('data-custom-state-name') == 'All'){
         $('table tbody tr:not(:visible)').show();
@@ -18,6 +18,21 @@
         $('table tbody tr .page-status').filter(':not('+selector+')').closest('tr').hide().end().end().filter(selector).closest('tr').show();
       }
       $(this).closest('.btn-group').find('> a span:first').text($(this).attr('data-custom-state-name'));
+    });
+    $('.gc_search_pages .gc_right #filter-page-level .dropdown-menu a').click(function(e){
+      e.preventDefault();
+      if($(this).attr('data-page-level') == '-1'){
+        $('table tbody tr:not(:visible)').show();
+      } else {
+        var max_level = $(this).attr('data-page-level');
+        var selector = function(index){
+          return $(this).data('page-level') <= max_level;
+        };
+        $('table tbody tr .page-level').filter(function(index){
+          return !selector.call(this);
+        }).closest('tr').hide().end().end().filter(selector).closest('tr').show();
+      }
+      $(this).closest('.btn-group').find('> a span:first').text($(this).attr('data-page-level'));
     });
     $('#gc_live_filter').keyup(function(){
       var v = $.trim($(this).val()), items = $('#gc_pagelist tbody tr');
