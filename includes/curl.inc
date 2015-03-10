@@ -495,9 +495,10 @@ class GatherContentCurl extends GatherContentFunctions {
         }
         else {
           $cur_settings = variable_get('gathercontent_saved_settings', array());
-          if (isset($cur_settings[$this->settings['project_id']]) &&
-            isset($cur_settings[$this->settings['project_id']][$parent_id])) {
-            $new_parent_id = $cur_settings[$this->settings['project_id']][$parent_id]['overwrite'];
+          $project_id = variable_get('gathercontent_project_id');
+          if (isset($cur_settings[$project_id]) &&
+            isset($cur_settings[$project_id][$parent_id])) {
+            $new_parent_id = $cur_settings[$project_id][$parent_id]['overwrite'];
           }
         }
       }
