@@ -366,17 +366,14 @@
       };
       settings.find('> .gc_settings_field').each(function(){
         var $t = $(this),
-          input = $t.find('> input'),
-          map_to = $t.find('> .gc_field_map > input'),
           field = {
-            "field_tab": input.filter('[name^="field_tab["]').val(),
-            "field_name": input.filter('[name^="field_name["]').val(),
-            "map_to": map_to.val()
+            "field_tab": $t.find('input[name^="field_tab["]').val(),
+            "field_name": $t.find('input[name^="field_name["]').val(),
+            "map_to": $t.find('input[name^="map_to["]').val()
           };
         data.gc.fields.push(field);
       });
     }
-    console.log(data);
     return data;
   };
   window.$gc_jQuery.expr[":"].icontains_searchable = window.$gc_jQuery.expr.createPseudo(function(arg) {
