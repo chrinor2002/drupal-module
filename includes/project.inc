@@ -43,6 +43,17 @@ function gathercontent_project_form($form, &$form_state) {
     );
   }
   else {
+    $form['header'] = array(
+      '#prefix' => '<div class="gc_cf">',
+      '#markup' => '<h2 class="gc_left">' . t('No projects found') . '</h2>',
+    );
+    $form['link'] = array(
+      '#type' => 'link',
+      '#title' => t('Account settings'),
+      '#href' => 'admin/config/content/gathercontent/login',
+      '#prefix' => '<div class="gc_right">',
+      '#suffix' => '</div></div>',
+    );
     drupal_set_message(t('No projects found'), 'error');
   }
   return $form;
