@@ -440,6 +440,12 @@ class GatherContentCurl extends GatherContentFunctions {
         }
       }
 
+      if (module_exists('redirect')) {
+        $instances['redirect'] = array(
+          'label' => t('Redirect'),
+        );
+      }
+
       if (isset($instances['body'])) {
         unset($instances['body']);
         $html .= '
