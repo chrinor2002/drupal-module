@@ -288,6 +288,13 @@ function gathercontent_import_page() {
 
           $save_settings['fields'][$tab . '_' . $field_name] = $map_to;
 
+          $sub_field = 'value';
+          $regex = '/\[(.+)\]$/';
+          if (preg_match($regex, $map_to, $matches)) {
+            $sub_field = $matches[1];
+            $map_to = preg_replace($regex, '', $map_to);
+          }
+
           if ($map_to != 'title' && $map_to != 'metatags') {
             $cur_field = $entity->{$map_to}->info();
             if ($field['type'] == 'files') {
@@ -455,17 +462,17 @@ function gathercontent_import_page() {
               }
               if (!isset($field_values[$map_to])) {
                 $field_values[$map_to] = array(
-                  'value' => '',
+                  $sub_field => '',
                   'format' => $save_settings['filter'],
                 );
               }
 
-              $val = $field_values[$map_to]['value'];
+              $val = $field_values[$map_to][$sub_field];
               if (!empty($val)) {
                 $val .= "\n";
               }
               $val .= $field['value'];
-              $field_values[$map_to]['value'] = $val;
+              $field_values[$map_to][$sub_field] = $val;
             }
             else {
               $field['value'] = strip_tags($field['value']);

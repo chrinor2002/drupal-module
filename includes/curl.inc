@@ -446,6 +446,11 @@ class GatherContentCurl extends GatherContentFunctions {
       <li data-post-type="' . $name . '" data-search="body">
         <a href="#" data-value="body">' . t('Body') . '</a>
       </li>';
+
+        $html .= '
+      <li data-post-type="' . $name . '" data-search="summary">
+        <a href="#" data-value="body[summary]">' . t('Summary') . '</a>
+      </li>';
       }
 
       if (isset($this->hasTitles[$name])) {
