@@ -288,7 +288,7 @@ function gathercontent_import_page() {
 
           $save_settings['fields'][$tab . '_' . $field_name] = $map_to;
 
-          if ($map_to != 'title') {
+          if ($map_to != 'title' && $map_to != 'metatags') {
             $cur_field = $entity->{$map_to}->info();
             if ($field['type'] == 'files') {
               if (is_array($field['value']) && count($field['value']) > 0) {
@@ -329,7 +329,13 @@ function gathercontent_import_page() {
             }
           }
 
-          if ($map_to == 'title') {
+          if ($map_to === 'metatags') {
+            $raw_entity = $entity->value();
+            $raw_entity->metatags = array(LANGUAGE_NONE => array(
+              'title' => $field,
+            ));
+          }
+          else if ($map_to == 'title') {
             $entity->title->set(strip_tags($field['value']));
           }
           elseif (!empty($field['value'])) {
