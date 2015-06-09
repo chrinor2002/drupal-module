@@ -264,6 +264,7 @@ function gathercontent_import_page() {
       }
 
       $field_values = array();
+      $redirects = array();
 
       if (isset($gc['fields'])) {
         foreach ($gc['fields'] as $info) {
@@ -295,7 +296,7 @@ function gathercontent_import_page() {
             $map_to = preg_replace($regex, '', $map_to);
           }
 
-          if ($map_to != 'title' && $map_to != 'metatags') {
+          if ($map_to != 'title' && $map_to != 'metatags' && $map_to != 'redirect') {
             $cur_field = $entity->{$map_to}->info();
             if ($field['type'] == 'files') {
               if (is_array($field['value']) && count($field['value']) > 0) {
@@ -336,7 +337,22 @@ function gathercontent_import_page() {
             }
           }
 
-          if ($map_to === 'metatags') {
+          if ($map_to === 'redirect') {
+            foreach(array_map('trim', explode(',', strip_tags($field['value']))) as $redirect) {
+              if (url_is_external($redirect)) {
+                $redirect = parse_url($redirect, PHP_URL_PATH);
+              }
+
+              $uri = ltrim($redirect, '/');
+
+              if (!valid_url($uri)) {
+                continue;
+              }
+
+              $redirects[] = $uri;
+            }
+          }
+          else if ($map_to === 'metatags') {
             $raw_entity = $entity->value();
             $raw_entity->metatags = array(LANGUAGE_NONE => array(
               'title' => $field,
@@ -489,6 +505,23 @@ function gathercontent_import_page() {
       $save_settings['overwrite'] = $entity->getIdentifier();
 
       $entity_uri = entity_uri($entity->type(), $entity->value());
+
+      if (module_exists('redirect')) {
+        foreach ($redirects as $uri) {
+          $redirect = new stdClass();
+          redirect_object_prepare($redirect);
+          $redirect->source = $uri;
+          $redirect->redirect = $entity_uri['path'];
+          $redirect->language = LANGUAGE_NONE;
+          // Check if the redirect exists before saving.
+          $hash = redirect_hash($redirect);
+
+          if (!redirect_load_by_hash($hash)) {
+            redirect_save($redirect);
+          }
+        }
+      }
+
       $mlid = gathercontent_create_menu_item($entity->title->value(), $save_settings['parent_id'], $entity_uri['path']);
 
       $media = variable_get('gathercontent_media_files');
