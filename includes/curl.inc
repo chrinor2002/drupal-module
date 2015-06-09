@@ -431,6 +431,15 @@ class GatherContentCurl extends GatherContentFunctions {
       </li>';
     foreach ($this->post_types as $name => $title) {
       $instances = field_info_instances('node', $name);
+
+      if (module_exists('metatag') && function_exists('metatag_entity_supports_metatags')) {
+        if (metatag_entity_supports_metatags('node', $name)) {
+          $instances['metatags'] = array(
+            'label' => t('Metatags'),
+          );
+        }
+      }
+
       if (isset($instances['body'])) {
         unset($instances['body']);
         $html .= '
