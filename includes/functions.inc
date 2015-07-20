@@ -11,9 +11,9 @@ class GatherContentFunctions {
   public $error = '';
 
   /**
-   * Get page title for media import page.
+   * Get item title for media import item.
    */
-  public function getPageTitleArray($post_id) {
+  public function getItemTitleArray($post_id) {
     $data = array();
     $post = node_load($post_id);
     $title = isset($post->title) ? $post->title : '';
@@ -22,8 +22,39 @@ class GatherContentFunctions {
     if (strlen($title) > 30) {
       $title = substr($title, 0, 27) . '...';
     }
-    $data['page_title'] = $title;
+    $data['item_title'] = $title;
     return $data;
+  }
+
+  /**
+   * Return hex color value for custom states.
+   */
+  public function customStateColor($color_id, $color_custom) {
+
+    $colors = array(
+      1 => '#C5C5C5',
+      2 => '#FAA732',
+      3 => '#5EB95E',
+      4 => '#0E90D2',
+      5 => '#ECD815',
+      6 => '#DD4398',
+      7 => '#954F99',
+      9999 => $this->customColorHex($color_custom)
+    );
+
+    return $colors[$color_id];
+  }
+
+  /**
+   * Return default hex color if none found.
+   */
+  private function customColorHex($color_custom) {
+
+    if(empty($color_custom)) {
+      $color_custom = '#999999';
+    }
+
+    return $color_custom;
   }
 
   /**
@@ -115,19 +146,19 @@ class GatherContentFunctions {
   /**
    * Used during media import to return output array containing file details.
    */
-  public function getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total) {
+  public function getMediaAjaxOutput($post_id, $media, $cur_post, $item_total, $total) {
     $cur_num = $_POST['cur_num'];
     $cur_total = $_POST['cur_total'];
 
     $next_id = $post_id;
-    if ($cur_num == $page_total) {
-      $page_percent = 100;
+    if ($cur_num == $item_total) {
+      $item_percent = 100;
       $cur_num = 1;
       unset($media[$post_id]);
       $next_id = key($media);
     }
     else {
-      $page_percent = $this->percent($cur_num, $page_total);
+      $item_percent = $this->percent($cur_num, $item_total);
       $cur_num++;
       $media[$post_id] = $cur_post;
     }
@@ -135,25 +166,25 @@ class GatherContentFunctions {
     variable_set('gathercontent_media_files', $media);
     if ($cur_total == $total) {
       $next_id = $post_id;
-      $page_percent = $overall_percent = '100';
+      $item_percent = $overall_percent = '100';
     }
     else {
       $overall_percent = $this->percent($cur_total, $total);
     }
     $cur_total++;
 
-    $data = $this->getPageTitleArray($next_id);
+    $data = $this->getItemTitleArray($next_id);
 
     if ($overall_percent == 100) {
       variable_set('gathercontent_media_files', array());
     }
 
     $out = array(
-      'page_percent' => $page_percent,
+      'item_percent' => $item_percent,
       'overall_percent' => $overall_percent,
       'cur_num' => $cur_num,
       'cur_total' => $cur_total,
-      'page_title' => $data['page_title'],
+      'item_title' => $data['item_title'],
       'original_title' => $data['original_title'],
     );
     return $out;

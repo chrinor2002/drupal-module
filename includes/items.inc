@@ -1,63 +1,63 @@
 <?php
 /**
  * @file
- * Contains selecting pages to process.
+ * Contains selecting items to process.
  */
 
 /**
- * Form constructor for selecting pages.
+ * Form constructor for selecting items.
  */
-function gathercontent_pages_form($form, &$form_state) {
-  gathercontent_check_step('pages');
+function gathercontent_item_form($form, &$form_state) {
+  gathercontent_check_step('items');
   $obj = gathercontent_get_obj();
   $obj->getProjects();
   $obj->getStates();
-  $obj->getPages();
+  $obj->getItems();
   $obj->getStateDropdown();
   $obj->getProjectsDropdown();
 
-  $form['page_header'] = array(
-    '#prefix' => '<div class="gc_page_header gc_cf">',
+  $form['item_header'] = array(
+    '#prefix' => '<div class="gc_item_header gc_cf">',
     '#suffix' => '</div>',
   );
-  $form['page_header']['title'] = array(
-    '#markup' => '<h2>' . check_plain(t('Choose pages to import')) . '</h2>',
+  $form['item_header']['title'] = array(
+    '#markup' => '<h2>' . check_plain(t('Choose items to import')) . '</h2>',
   );
-  $form['page_header']['account_link'] = array(
+  $form['item_header']['account_link'] = array(
     '#type' => 'link',
     '#title' => t('Account settings'),
     '#href' => 'admin/config/content/gathercontent/login',
   );
 
-  $form['page_options'] = array();
-  $form['page_options']['project_dropdown'] = array(
-    '#prefix' => '<div class="gc_search_pages gc_cf"><div class="gc_left">',
+  $form['item_options'] = array();
+  $form['item_options']['project_dropdown'] = array(
+    '#prefix' => '<div class="gc_search_items gc_cf"><div class="gc_left">',
     '#markup' => $obj->data['projects_dropdown'],
     '#suffix' => '</div>',
   );
-  $form['page_options']['live_filter'] = array(
+  $form['item_options']['live_filter'] = array(
     '#prefix' => '<div class="gc_right">',
     '#suffix' => '</div></div>',
   );
-  $form['page_options']['live_filter']['state_dropdown'] = array(
+  $form['item_options']['live_filter']['state_dropdown'] = array(
     '#markup' => $obj->data['state_dropdown'],
   );
-  $form['page_options']['live_filter']['filter_input'] = array(
+  $form['item_options']['live_filter']['filter_input'] = array(
     '#markup' => '<input type="text" name="search" id="gc_live_filter" placeholder="' . check_plain(t('Search...')) . '" />',
   );
-  $form['page_options']['live_filter']['submit'] = array(
+  $form['item_options']['live_filter']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Configure selected pages'),
+    '#value' => t('Configure selected items'),
   );
 
-  $form['page_list'] = array();
-  $form['pages'] = array();
-  $form = $obj->generateFormSettings($form, $obj->pages);
+  $form['item_list'] = array();
+  $form['items'] = array();
+  $form = $obj->generateFormSettings($form, $obj->items);
 
-  $form['page_options_bottom'] = array(
-    '#prefix' => '<div class="gc_search_pages gc_search_bottom gc_cf"><div class="gc_right">',
+  $form['item_options_bottom'] = array(
+    '#prefix' => '<div class="gc_search_items gc_search_bottom gc_cf"><div class="gc_right">',
     '#type' => 'submit',
-    '#value' => t('Configure selected pages'),
+    '#value' => t('Configure selected items'),
     '#suffix' => '</div></div>',
   );
 
@@ -65,22 +65,22 @@ function gathercontent_pages_form($form, &$form_state) {
 }
 
 /**
- * Form theme handler for gathercontent_pages_form().
+ * Form theme handler for gathercontent_items_form().
  */
-function theme_gathercontent_pages_form($variables) {
+function theme_gathercontent_item_form($variables) {
   $form = $variables['form'];
   $rows = array();
 
-  foreach (element_children($form['page_list']) as $id) {
+  foreach (element_children($form['item_list']) as $id) {
 
     $rows[] = array(
       'data' => array(
-        drupal_render($form['page_list'][$id]['page_state']),
+        drupal_render($form['item_list'][$id]['item_state']),
         array(
-          'data' => drupal_render($form['page_list'][$id]['page_name']),
-          'class' => 'page-name',
+          'data' => drupal_render($form['item_list'][$id]['item_name']),
+          'class' => 'item-name',
         ),
-        drupal_render($form['pages'][$id]),
+        drupal_render($form['items'][$id]),
       ),
     );
   }
@@ -88,44 +88,44 @@ function theme_gathercontent_pages_form($variables) {
   $header = array(
     array(
       'data' => '',
-      'class' => 'page-state',
+      'class' => 'item-state',
     ),
     array(
       'data' => t('Pages'),
-      'class' => 'page-name',
+      'class' => 'item-name',
     ),
     '<input type="checkbox" class="gc_toggle_all" />'
   );
 
-  $output = drupal_render($form['page_header']);
-  $output .= drupal_render($form['page_options']);
+  $output = drupal_render($form['item_header']);
+  $output .= drupal_render($form['item_options']);
   $output .= theme('table', array(
     'header' => $header,
     'rows' => $rows,
-    'attributes' => array('id' => 'gc_pagelist'),
-    'empty' => t('No pages available.')
+    'attributes' => array('id' => 'gc_itemlist'),
+    'empty' => t('No items available.')
   ));
   $output .= drupal_render_children($form);
   return $output;
 }
 
 /**
- * Form submission handler for gathercontent_pages_form().
+ * Form submission handler for gathercontent_items_form().
  */
-function gathercontent_pages_form_submit($form, &$form_state) {
-  $selected_pages = array();
-  if (isset($form_state['values']['pages'])) {
-    foreach ($form_state['values']['pages'] as $id => $val) {
+function gathercontent_item_form_submit($form, &$form_state) {
+  $selected_items = array();
+  if (isset($form_state['values']['items'])) {
+    foreach ($form_state['values']['items'] as $id => $val) {
       if ($val > 0) {
-        $selected_pages[] = $id;
+        $selected_items[] = $id;
       }
     }
   }
-  if (count($selected_pages) > 0) {
-    variable_set('gathercontent_selected_pages', $selected_pages);
-    drupal_goto('admin/config/content/gathercontent/pages_import');
+  if (count($selected_items) > 0) {
+    variable_set('gathercontent_selected_items', $selected_items);
+    drupal_goto('admin/config/content/gathercontent/item_import');
   }
   else {
-    drupal_set_message(t('No pages selected'), 'error');
+    drupal_set_message(t('No items selected'), 'error');
   }
 }

@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Page for importing media via AJAX.
+ * Item for importing media via AJAX.
  */
 
 /**
@@ -29,7 +29,7 @@ function gathercontent_media_form($form, &$form_state) {
   }
   unset($media['total_files']);
   $post_id = key($media);
-  extract($obj->getPageTitleArray($post_id));
+  extract($obj->getItemTitleArray($post_id));
 
   $form['header'] = array(
     '#markup' => '<h2>' . t('Importing files') . '</h2>',
@@ -37,18 +37,18 @@ function gathercontent_media_form($form, &$form_state) {
 
   $form['message'] = array(
     '#prefix' => '<div class="alert alert-success">',
-    '#markup' => t('<strong>Heads up!</strong> This process can take a while, it depends on how many files you have attached to your pages. Just think how much time you\'re saving.'),
+    '#markup' => t('<strong>Heads up!</strong> This process can take a while, it depends on how many files you have attached to your items. Just think how much time you\'re saving.'),
     '#suffix' => '</div>',
   );
 
-  $form['current_page']['label'] = array(
+  $form['current_item']['label'] = array(
     '#prefix' => '<label>',
     '#suffix' => '</label>',
-    '#markup' => t('Page:') . ' <span id="gc_page_title" title="' . $original_title . '">' . $page_title . '</span><img src="' . file_create_url($path . '/images/ajax-loader-grey.gif') . '" alt="" />',
+    '#markup' => t('Item:') . ' <span id="gc_item_title" title="' . $original_title . '">' . $item_title . '</span><img src="' . file_create_url($path . '/images/ajax-loader-grey.gif') . '" alt="" />',
   );
 
-  $form['current_page']['progress_bar'] = array(
-    '#markup' => '<div id="current_page" class="progress"><div class="bar" style="width:0%"></div></div>',
+  $form['current_item']['progress_bar'] = array(
+    '#markup' => '<div id="current_item" class="progress"><div class="bar" style="width:0%"></div></div>',
   );
 
   $form['overall']['label'] = array(
@@ -64,7 +64,7 @@ function gathercontent_media_form($form, &$form_state) {
   $form['cancel_link'] = array(
     '#prefix' => '<div class="gc_center">',
     '#type' => 'link',
-    '#href' => 'admin/config/content/gathercontent/pages_import',
+    '#href' => 'admin/config/content/gathercontent/item_import',
     '#title' => t('Cancel'),
     '#suffix' => '</div>',
   );
@@ -75,7 +75,7 @@ function gathercontent_media_form($form, &$form_state) {
  * AJAX function to process individual media item.
  */
 function gathercontent_ajax_media_download() {
-  $out = array('error' => t('Verification failed, please refreshing the page and try again.'));
+  $out = array('error' => t('Verification failed, please refreshing the item and try again.'));
   if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] == "XMLHttpRequest") {
     $obj = gathercontent_get_obj();
     $cur_num = $_POST['cur_num'];
@@ -89,7 +89,7 @@ function gathercontent_ajax_media_download() {
     $post_id = key($media);
     if(is_array($media[$post_id]['files']) && count($media[$post_id]['files']) > 0) {
       $cur_post = $media[$post_id];
-      $page_total = $cur_post['total_files'];
+      $item_total = $cur_post['total_files'];
       $more_than_1 = (count($cur_post['files'][0]) > 1);
       $file = array_shift($cur_post['files'][0]);
       $is_file_field = $file['is_file_field'];
@@ -109,7 +109,7 @@ function gathercontent_ajax_media_download() {
         $file_obj = $file_obj->fetchObject();
         $obj->addMediaToEntity($entity, $is_file_field, $file_obj, $file['field'], $more_than_1, $field_type, $file['counter']);
 
-        $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total);
+        $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $item_total, $total);
         $out['success'] = TRUE;
       }
       else {
@@ -154,12 +154,12 @@ function gathercontent_ajax_media_download() {
 
             $obj->addMediaToEntity($entity, $is_file_field, $new_file, $file['field'], $more_than_1, $field_type, $file['counter']);
 
-            $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total);
+            $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $item_total, $total);
             $out['success'] = TRUE;
           }
           else {
             if ($retry == '1') {
-              $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total);
+              $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $item_total, $total);
               $out['success'] = FALSE;
               $out['error'] = sprintf(t('There was an error with the file (%s)'), $new_file);
             }
@@ -174,7 +174,7 @@ function gathercontent_ajax_media_download() {
         }
         else {
           if ($retry == '1') {
-            $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total);
+            $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $item_total, $total);
             $out['success'] = FALSE;
             $out['error'] = sprintf(t('There was an error with the file (%s)'), $new_file);
           }
@@ -190,7 +190,7 @@ function gathercontent_ajax_media_download() {
     }
     else {
       if ($retry == '1') {
-        $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $page_total, $total);
+        $out = $obj->getMediaAjaxOutput($post_id, $media, $cur_post, $item_total, $total);
         $out['success'] = FALSE;
         $out['error'] = sprintf(t('Failed to download the file (%s)'), $file['original_filename']);
       }

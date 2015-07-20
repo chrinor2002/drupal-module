@@ -16,11 +16,11 @@ class GatherContentCurl extends GatherContentFunctions {
   private $hasTitles = array();
 
   /**
-   * Return parent id associated with a specific page.
+   * Return parent id associated with a specific item.
    */
-  public function getParentId($page_id) {
-    if (isset($this->parentIds[$page_id])) {
-      return $this->parentIds[$page_id];
+  public function getParentId($item_id) {
+    if (isset($this->parentIds[$item_id])) {
+      return $this->parentIds[$item_id];
     }
 
     return 0;
@@ -135,19 +135,19 @@ class GatherContentCurl extends GatherContentFunctions {
   }
 
   /**
-   * Get file array for a specific page.
+   * Get file array for a specific item.
    */
-  public function getFiles($page_id) {
-    $files = $this->get('get_files_by_page', array('id' => $page_id));
+  public function getFiles($item_id) {
+    $files = $this->get('get_files_by_page', array('id' => $item_id));
     if ($files && isset($files->files) && $this->foreachSafe($files->files)) {
       foreach ($files->files as $file) {
-        if (!isset($this->files[$file->page_id])) {
-          $this->files[$file->page_id] = array();
+        if (!isset($this->files[$file->item_id])) {
+          $this->files[$file->item_id] = array();
         }
-        if (!isset($this->files[$file->page_id][$file->field])) {
-          $this->files[$file->page_id][$file->field] = array();
+        if (!isset($this->files[$file->item_id][$file->field])) {
+          $this->files[$file->item_id][$file->field] = array();
         }
-        $this->files[$file->page_id][$file->field][] = $file;
+        $this->files[$file->item_id][$file->field][] = $file;
       }
     }
   }
@@ -163,8 +163,8 @@ class GatherContentCurl extends GatherContentFunctions {
       foreach ($projects->projects as $project) {
         $newprojects[$project->id] = array(
           'name' => $project->name,
-          'page_count' => $project->page_count,
-          'word' => ($project->page_count == 1 ? 'page' : 'pages'),
+          'item_count' => $project->page_count,
+          'word' => ($project->page_count == 1 ? 'item' : 'items'),
         );
       }
       asort($newprojects);
@@ -182,11 +182,11 @@ class GatherContentCurl extends GatherContentFunctions {
       foreach ($states->custom_states as $state) {
         $new_states[$state->id] = (object) array(
           'name' => $state->name,
-          'color_id' => $state->color_id,
+          'color' => $this->customStateColor($state->color_id, $state->color_custom),
           'position' => $state->position
         );
       }
-      @uasort($new_states, array(&$this, 'sortPages'));
+      @uasort($new_states, array(&$this, 'sortItems'));
     }
     $this->data['states'] = $new_states;
   }
@@ -224,13 +224,13 @@ class GatherContentCurl extends GatherContentFunctions {
   public function getStateDropdown() {
     $html = '
       <li>
-        <a data-custom-state-name="All" href="#change-state"><span class="page-status"></span>  ' . t('All') . '</a>
+        <a data-custom-state-name="All" href="#change-state"><span class="item-status"></span>  ' . t('All') . '</a>
       </li>';
     if ($this->foreachSafe($this->data['states'])) {
       foreach ($this->data['states'] as $id => $state) {
         $html .= '
         <li>
-          <a data-custom-state-name="' . $state->name . '" data-custom-state-id="' . $id . '" href="#change-state"><span class="page-status page-state-color-' . $state->color_id . '"></span> ' . $state->name . '</a>
+          <a data-custom-state-name="' . $state->name . '" data-custom-state-id="' . $id . '" href="#change-state"><span class="item-status item-state-color-9999" style="background-color:' . $state->color . '"></span> ' . $state->name . '</a>
         </li>';
       }
     }
@@ -277,53 +277,53 @@ class GatherContentCurl extends GatherContentFunctions {
   }
 
   /**
-   * List pages for the selected project.
+   * List items for the selected project.
    */
-  public function getPages($save_pages = FALSE) {
-    $pages = $this->get('get_pages_by_project', array('id' => variable_get('gathercontent_project_id')));
+  public function getItems($save_items = FALSE) {
+    $items = $this->get('get_pages_by_project', array('id' => variable_get('gathercontent_project_id')));
     $original = array();
-    $new_pages = array();
+    $new_items = array();
     $parent_array = array();
-    $meta_pages = array();
-    if ($pages && is_array($pages->pages)) {
-      foreach ($pages->pages as $page) {
-        $original[$page->id] = $page;
-        $parent_id = $page->parent_id;
+    $meta_items = array();
+    if ($items && is_array($items->pages)) {
+      foreach ($items->pages as $item) {
+        $original[$item->id] = $item;
+        $parent_id = $item->parent_id;
         if (!isset($parent_array[$parent_id])) {
           $parent_array[$parent_id] = array();
         }
-        $parent_array[$parent_id][$page->id] = $page;
+        $parent_array[$parent_id][$item->id] = $item;
       }
-      foreach ($parent_array as $parent_id => $page_array) {
-        $array = $page_array;
-        @uasort($array, array(&$this, 'sortPages'));
+      foreach ($parent_array as $parent_id => $item_array) {
+        $array = $item_array;
+        @uasort($array, array(&$this, 'sortItems'));
         $parent_array[$parent_id] = $array;
       }
       if (isset($parent_array[0])) {
-        foreach ($parent_array[0] as $id => $page) {
-          $new_pages[$id] = $page;
-          $new_pages[$id]->children = $this->sortRecursive($parent_array, $id);
+        foreach ($parent_array[0] as $id => $item) {
+          $new_items[$id] = $item;
+          $new_items[$id]->children = $this->sortRecursive($parent_array, $id);
         }
       }
     }
-    $this->pages = $new_pages;
+    $this->items = $new_items;
     $this->original_array = $original;
-    $this->meta_pages = $meta_pages;
-    if ($save_pages) {
+    $this->meta_items = $meta_items;
+    if ($save_items) {
       $project_id = variable_get('gathercontent_project_id');
-      $saved_pages = variable_get('gathercontent_saved_pages');
-      if (!is_array($saved_pages)) {
-        $saved_pages = array();
+      $saved_items = variable_get('gathercontent_saved_items');
+      if (!is_array($saved_items)) {
+        $saved_items = array();
       }
-      $saved_pages[$project_id] = array('pages' => $original, 'meta' => $meta_pages);
-      variable_set('gathercontent_saved_pages', $saved_pages);
+      $saved_items[$project_id] = array('items' => $original, 'meta' => $meta_items);
+      variable_set('gathercontent_saved_items', $saved_items);
     }
   }
 
   /**
-   * Return dropdown for page list to overwrite.
+   * Return dropdown for item list to overwrite.
    */
-  public function pageOverwriteDropdown() {
+  public function itemOverwriteDropdown() {
     $html = $this->getTreeList();
     if ($html != '') {
       $html = '
@@ -338,14 +338,14 @@ class GatherContentCurl extends GatherContentFunctions {
   }
 
   /**
-   * Return dropdown for parent page list.
+   * Return dropdown for parent item list.
    */
   public function parentDropdown() {
     $html = '<li>
       <a href="#" data-value="0">' . t('No Menu Link') . '</a>
     </li>
-    <li class="imported-page">
-      <a href="#" data-value="_imported_page_">' . t('Parent Being Imported') . '</a>
+    <li class="imported-item">
+      <a href="#" data-value="_imported_item_">' . t('Parent Being Imported') . '</a>
     </li>';
     if(function_exists('menu_parent_options')) {
       $html .= '
@@ -355,10 +355,10 @@ class GatherContentCurl extends GatherContentFunctions {
       foreach ($types as $type) {
         $options = menu_parent_options(menu_get_menus(), $type, $type);
 
-        foreach ($options as $id => $page_name) {
+        foreach ($options as $id => $item_name) {
           $html .= '
       <li data-post-type="' . $type . '">
-        <a href="#" data-value="' . $id . '">' . check_plain($page_name) . '</a>
+        <a href="#" data-value="' . $id . '">' . check_plain($item_name) . '</a>
       </li>';
         }
       }
@@ -368,7 +368,7 @@ class GatherContentCurl extends GatherContentFunctions {
   }
 
   /**
-   * Return list of pages.
+   * Return list of items.
    */
   private function getTreeList() {
     if (isset($this->data['tree_list'])) {
@@ -503,15 +503,15 @@ class GatherContentCurl extends GatherContentFunctions {
   /**
    * Return option to be selected in the parent dropdown.
    */
-  private function getParentPageId($parent_id, $selected_pages, $cur_settings) {
+  private function getParentItemId($parent_id, $selected_items, $cur_settings) {
     $new_parent_id = 0;
     if (isset($cur_settings['parent_id'])) {
       $new_parent_id = $cur_settings['parent_id'];
     }
     else {
       if ($parent_id > 0) {
-        if (in_array($parent_id, $selected_pages)) {
-          $new_parent_id = '_imported_page_';
+        if (in_array($parent_id, $selected_items)) {
+          $new_parent_id = '_imported_item_';
         }
         else {
           $cur_settings = variable_get('gathercontent_saved_settings', array());
@@ -528,12 +528,12 @@ class GatherContentCurl extends GatherContentFunctions {
   }
 
   /**
-   * Generate page settings for pages_import page.
+   * Generate item settings for item_import item.
    */
   public function generateFormSettings($form, $array, $index = -1, $show_settings = FALSE) {
     $index++;
     $prefix = '';
-    $selected = variable_get('gathercontent_selected_pages');
+    $selected = variable_get('gathercontent_selected_items');
     if (!$this->foreachSafe($selected)) {
       $selected = array();
     }
@@ -543,38 +543,38 @@ class GatherContentCurl extends GatherContentFunctions {
       }
       $prefix .= '↳';
     }
-    foreach ($array as $id => $page) {
+    foreach ($array as $id => $item) {
       if ($show_settings && !in_array($id, $selected)) {
-        if (isset($page->children) && count($page->children) > 0) {
-          $form = $this->generateFormSettings($form, $page->children, $index, $show_settings);
+        if (isset($item->children) && count($item->children) > 0) {
+          $form = $this->generateFormSettings($form, $item->children, $index, $show_settings);
         }
         continue;
       }
-      $form['page_list'][$id] = array(
-        'page_state' => array(
-          '#markup' => '<span data-page-state="' . $page->custom_state_id . '" class="page-status page-state-color-' . $this->data['states'][$page->custom_state_id]->color_id . '"></span>',
+      $form['item_list'][$id] = array(
+        'item_state' => array(
+          '#markup' => '<span data-item-state="' . $item->custom_state_id . '" class="item-status item-state-color-9999" style="background-color:' . $this->data['states'][$item->custom_state_id]->color . '"></span>',
         ),
-        'page_name' => array(
-          '#markup' => $prefix . '<span>' . $page->name . '</span>',
+        'item_name' => array(
+          '#markup' => $prefix . '<span>' . $item->name . '</span>',
         )
       );
 
-      $config = $this->getFieldConfig($page);
+      $config = $this->getFieldConfig($item);
 
       $field_count = $this->val($config, 'field_count', 0);
 
       if($show_settings && $field_count == 0) {
-        $form['pages'][$id] = array(
+        $form['items'][$id] = array(
           '#markup' => '',
         );
       }
       else {
-        $form['pages'][$id] = array(
+        $form['items'][$id] = array(
           '#type' => 'checkbox',
           '#return_value' => $id,
           '#default_value' => ($show_settings ? $id : 0),
           '#parents' => array(
-            'pages',
+            'items',
             $id,
           ),
         );
@@ -585,9 +585,9 @@ class GatherContentCurl extends GatherContentFunctions {
           $cur_settings = $this->data['saved_settings'][$id];
         }
         if ($field_count > 0) {
-          $parent_id = $page->parent_id;
-          $this->parentIds[$page->id] = $page->parent_id;
-          $parent_id_value = $this->getParentPageId($parent_id, $selected, $cur_settings);
+          $parent_id = $item->parent_id;
+          $this->parentIds[$item->id] = $item->parent_id;
+          $parent_id_value = $this->getParentItemId($parent_id, $selected, $cur_settings);
           $form['settings'][$id] = array(
             '#prefix' => '<div>',
             '#suffix' => '</div>',
@@ -674,12 +674,12 @@ class GatherContentCurl extends GatherContentFunctions {
         }
         else {
           $form['settings'][$id] = array(
-            '#markup' => '<div class="alert alert-info">' . sprintf(t('This page is empty. You can %sadd some content to this page in GatherContent%s.'), '<a href="https://' . variable_get('gathercontent_api_url') . '.gathercontent.com/pages/view/' . variable_get('gathercontent_project_id') . '/' . $id . '" target="_blank">', '</a>') . '</div>',
+            '#markup' => '<div class="alert alert-info">' . sprintf(t('This item is empty. You can %sadd some content to this item in GatherContent%s.'), '<a href="https://' . variable_get('gathercontent_api_url') . '.gathercontent.com/page/' . $id . '" target="_blank">', '</a>') . '</div>',
           );
         }
       }
-      if (isset($page->children) && count($page->children) > 0) {
-        $form = $this->generateFormSettings($form, $page->children, $index, $show_settings);
+      if (isset($item->children) && count($item->children) > 0) {
+        $form = $this->generateFormSettings($form, $item->children, $index, $show_settings);
       }
     }
 
@@ -818,23 +818,23 @@ class GatherContentCurl extends GatherContentFunctions {
   }
 
   /**
-   * Sort pages recursively.
+   * Sort items recursively.
    */
-  private function sortRecursive($pages, $current = 0) {
+  private function sortRecursive($items, $current = 0) {
     $children = array();
-    if (isset($pages[$current])) {
-      $children = $pages[$current];
-      foreach ($children as $id => $page) {
-        $children[$id]->children = $this->sortRecursive($pages, $id);
+    if (isset($items[$current])) {
+      $children = $items[$current];
+      foreach ($children as $id => $item) {
+        $children[$id]->children = $this->sortRecursive($items, $id);
       }
     }
     return $children;
   }
 
   /**
-   * Sort pages by position and id.
+   * Sort items by position and id.
    */
-  private function sortPages($a, $b) {
+  private function sortItems($a, $b) {
     if ($a->position == $b->position) {
       if ($a->id == $b->id) {
         return 0;
