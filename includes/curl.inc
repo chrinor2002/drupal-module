@@ -141,13 +141,13 @@ class GatherContentCurl extends GatherContentFunctions {
     $files = $this->get('get_files_by_page', array('id' => $item_id));
     if ($files && isset($files->files) && $this->foreachSafe($files->files)) {
       foreach ($files->files as $file) {
-        if (!isset($this->files[$file->item_id])) {
-          $this->files[$file->item_id] = array();
+        if (!isset($this->files[$file->page_id])) {
+          $this->files[$file->page_id] = array();
         }
-        if (!isset($this->files[$file->item_id][$file->field])) {
-          $this->files[$file->item_id][$file->field] = array();
+        if (!isset($this->files[$file->page_id][$file->field])) {
+          $this->files[$file->page_id][$file->field] = array();
         }
-        $this->files[$file->item_id][$file->field][] = $file;
+        $this->files[$file->page_id][$file->field][] = $file;
       }
     }
   }
