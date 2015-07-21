@@ -43,7 +43,7 @@ function gathercontent_item_import_form($form, &$form_state) {
     <div class="gc_overlay"></div>
     <div class="gc_container gc_modal gc_importing_modal">
         <h2>' . t('Importing items and text content...') . '</h2>
-        <label>' . t('Page:') . ' <span id="gc_item_title"></span><img src="' . file_create_url($path . '/images/ajax-loader-grey.gif') . '" alt="" /></label>
+        <label>' . t('Item:') . ' <span id="gc_item_title"></span><img src="' . file_create_url($path . '/images/ajax-loader-grey.gif') . '" alt="" /></label>
         <div id="current_item" class="progress">
             <div class="bar" style="width:0%"></div>
         </div>
