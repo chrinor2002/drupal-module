@@ -155,7 +155,7 @@ function theme_gathercontent_item_import_form($variables) {
       'class' => 'item-state',
     ),
     array(
-      'data' => t('Pages'),
+      'data' => t('Items'),
       'class' => 'item-name',
     ),
     '<input type="checkbox" class="gc_toggle_all" />'
