@@ -6,9 +6,9 @@ GatherContent is an online platform for pulling together, editing, and reviewing
 
 Connecting a powerful content production platform, to a powerful content publishing platform.
 
-Content can be imported as any sort of node content type. And you can choose to create new pages etc. or overwrite existing entities.
+Content can be imported as any sort of node content type. And you can choose to create new items etc. or overwrite existing entities.
 
-The module allows you to specifically map each field on your pages in [GatherContent](https://gathercontent.com) to various fields in Drupal, these include; title and any field your content type may have. It also allows you to directly embed images and files.
+The module allows you to specifically map each field on your items in [GatherContent](https://gathercontent.com) to various fields in Drupal, these include; title and any field your content type may have. It also allows you to directly embed images and files.
 
 ## Installation ##
 

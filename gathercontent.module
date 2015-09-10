@@ -1,7 +1,7 @@
 <?php
 /**
  * @file
- * Imports pages from GatherContent (http://gathercontent.com/) into Drupal as
+ * Imports items from GatherContent (http://gathercontent.com/) into Drupal as
  * nodes.
  */
 
@@ -15,7 +15,7 @@ function gathercontent_menu() {
 
   $items['admin/config/content/gathercontent'] = array(
     'title' => 'GatherContent',
-    'description' => 'Import GatherContent pages to your Drupal CMS',
+    'description' => 'Import GatherContent items to your Drupal CMS',
     'page callback' => 'drupal_get_form',
     'access arguments' => array('administer gathercontent'),
     'file' => 'project.inc',
@@ -31,23 +31,23 @@ function gathercontent_menu() {
     'type' => MENU_CALLBACK,
     'page arguments' => array('gathercontent_login_form'),
   );
-  $items['admin/config/content/gathercontent/pages'] = array(
+  $items['admin/config/content/gathercontent/items'] = array(
     'title' => 'GatherContent',
     'page callback' => 'drupal_get_form',
     'access arguments' => array('administer gathercontent'),
-    'file' => 'pages.inc',
+    'file' => 'items.inc',
     'file path' => $path,
     'type' => MENU_CALLBACK,
-    'page arguments' => array('gathercontent_pages_form'),
+    'page arguments' => array('gathercontent_item_form'),
   );
-  $items['admin/config/content/gathercontent/pages_import'] = array(
+  $items['admin/config/content/gathercontent/item_import'] = array(
     'title' => 'GatherContent',
     'page callback' => 'drupal_get_form',
     'access arguments' => array('administer gathercontent'),
-    'file' => 'pages_import.inc',
+    'file' => 'item_import.inc',
     'file path' => $path,
     'type' => MENU_CALLBACK,
-    'page arguments' => array('gathercontent_pages_import_form'),
+    'page arguments' => array('gathercontent_item_import_form'),
   );
   $items['admin/config/content/gathercontent/media'] = array(
     'title' => 'GatherContent',
@@ -82,10 +82,10 @@ function gathercontent_menu() {
     'file path' => $path,
     'type' => MENU_CALLBACK,
   );
-  $items['admin/config/content/gathercontent/import_page'] = array(
-    'page callback' => 'gathercontent_import_page',
+  $items['admin/config/content/gathercontent/import_item'] = array(
+    'page callback' => 'gathercontent_import_item',
     'access arguments' => array('administer gathercontent'),
-    'file' => 'pages_import.inc',
+    'file' => 'item_import.inc',
     'file path' => $path,
     'type' => MENU_CALLBACK,
   );
@@ -108,7 +108,7 @@ function gathercontent_permission() {
   return array(
     'administer gathercontent' => array(
       'title' => t('Administer GatherContent'),
-      'description' => t('Change settings and import pages from GatherContent'),
+      'description' => t('Change settings and import items from GatherContent'),
       'restrict access' => TRUE,
     ),
   );
@@ -134,8 +134,8 @@ function gathercontent_check_step($step = '') {
   $checks = array(
     'projects',
     'login',
-    'pages',
-    'pages_import',
+    'items',
+    'item_import',
     'media',
     'finished'
   );
@@ -147,16 +147,16 @@ function gathercontent_check_step($step = '') {
       'fields' => array('api_key','api_url'),
       'prev' => 'login'
     ),
-    'pages' => array(
+    'items' => array(
       'fields' => array('project_id'),
       'prev' => 'projects'
     ),
-    'pages_import' => array(
-      'fields' => array('project_id','selected_pages'),
+    'item_import' => array(
+      'fields' => array('project_id','selected_items'),
       'prev' => 'projects'
     ),
     'media' => array(
-      'fields' => array('project_id','selected_pages'),
+      'fields' => array('project_id','selected_items'),
       'prev' => 'projects'
     ),
   );
@@ -190,14 +190,14 @@ function gathercontent_check_step($step = '') {
 function gathercontent_theme() {
   $path = drupal_get_path('module', 'gathercontent') . '/includes';
   return array(
-    'gathercontent_pages_form' => array(
+    'gathercontent_item_form' => array(
       'render element' => 'form',
-      'file' => 'pages.inc',
+      'file' => 'items.inc',
       'path' => $path,
     ),
-    'gathercontent_pages_import_form' => array(
+    'gathercontent_item_import_form' => array(
       'render element' => 'form',
-      'file' => 'pages_import.inc',
+      'file' => 'item_import.inc',
       'path' => $path,
     ),
   );

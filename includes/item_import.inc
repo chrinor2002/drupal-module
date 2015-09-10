@@ -1,19 +1,19 @@
 <?php
 /**
  * @file
- * Contains page field mapping form.
+ * Contains item field mapping form.
  */
 
 /**
  * Form constructor for mapping fields.
  */
-function gathercontent_pages_import_form($form, &$form_state) {
-  gathercontent_check_step('pages_import');
+function gathercontent_item_import_form($form, &$form_state) {
+  gathercontent_check_step('item_import');
   $obj = gathercontent_get_obj();
   $obj->getStates();
-  $obj->getPages(TRUE);
+  $obj->getItems(TRUE);
   $obj->getPostTypes();
-  $obj->pageOverwriteDropdown();
+  $obj->itemOverwriteDropdown();
   $obj->mapToDropdown();
   $obj->filtersDropdown();
   $obj->parentDropdown();
@@ -26,7 +26,7 @@ function gathercontent_pages_import_form($form, &$form_state) {
 
   drupal_add_js(array(
     'gathercontent' => array(
-      'ajaxurl' => url('admin/config/content/gathercontent/import_page'),
+      'ajaxurl' => url('admin/config/content/gathercontent/import_item'),
       'media' => url('admin/config/content/gathercontent/media'),
       'finished' => url('admin/config/content/gathercontent/finished'),
       'error_message' => t('There was a problem connecting. Please try again later'),
@@ -36,15 +36,15 @@ function gathercontent_pages_import_form($form, &$form_state) {
 
   $path = drupal_get_path('module', 'gathercontent');
   drupal_add_js($path . '/js/jquery-ui-1.10.3.custom.min.js');
-  drupal_add_js($path . '/js/pages_import.js');
+  drupal_add_js($path . '/js/item_import.js');
 
   $form['modals'] = array(
     '#markup' => '
     <div class="gc_overlay"></div>
     <div class="gc_container gc_modal gc_importing_modal">
-        <h2>' . t('Importing pages and text content...') . '</h2>
-        <label>' . t('Page:') . ' <span id="gc_page_title"></span><img src="' . file_create_url($path . '/images/ajax-loader-grey.gif') . '" alt="" /></label>
-        <div id="current_page" class="progress">
+        <h2>' . t('Importing items and text content...') . '</h2>
+        <label>' . t('Item:') . ' <span id="gc_item_title"></span><img src="' . file_create_url($path . '/images/ajax-loader-grey.gif') . '" alt="" /></label>
+        <div id="current_item" class="progress">
             <div class="bar" style="width:0%"></div>
         </div>
     </div>
@@ -54,50 +54,50 @@ function gathercontent_pages_import_form($form, &$form_state) {
     </div>'
   );
 
-  $form['page_header'] = array(
-    '#prefix' => '<div class="gc_page_header gc_cf">',
+  $form['item_header'] = array(
+    '#prefix' => '<div class="gc_item_header gc_cf">',
     '#suffix' => '</div>',
   );
-  $form['page_header']['title'] = array(
-    '#markup' => '<h2>' . check_plain(t('Choose pages to import')) . '</h2>',
+  $form['item_header']['title'] = array(
+    '#markup' => '<h2>' . check_plain(t('Choose items to import')) . '</h2>',
   );
-  $form['page_header']['account_link'] = array(
+  $form['item_header']['account_link'] = array(
     '#type' => 'link',
     '#title' => t('Account settings'),
     '#href' => 'admin/config/content/gathercontent/login',
   );
 
-  $form['page_options'] = array();
-  $form['page_options']['select_pages'] = array(
+  $form['item_options'] = array();
+  $form['item_options']['select_items'] = array(
     '#type' => 'link',
-    '#href' => 'admin/config/content/gathercontent/pages',
-    '#title' => t('Select different pages'),
-    '#prefix' => '<div class="gc_search_pages gc_cf"><div class="gc_left">',
+    '#href' => 'admin/config/content/gathercontent/items',
+    '#title' => t('Select different items'),
+    '#prefix' => '<div class="gc_search_items gc_cf"><div class="gc_left">',
     '#suffix' => '</div>',
   );
-  $form['page_options']['submit'] = array(
+  $form['item_options']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Import selected pages'),
+    '#value' => t('Import selected items'),
     '#prefix' => '<div class="gc_right">',
     '#suffix' => '</div></div>',
   );
 
-  $form['page_list'] = array();
-  $form['pages'] = array();
+  $form['item_list'] = array();
+  $form['items'] = array();
   $form['settings'] = array();
-  $form = $obj->generateFormSettings($form, $obj->pages, -1, TRUE);
+  $form = $obj->generateFormSettings($form, $obj->items, -1, TRUE);
 
-  $form['page_options_footer'] = array();
-  $form['page_options_footer']['select_pages'] = array(
+  $form['item_options_footer'] = array();
+  $form['item_options_footer']['select_items'] = array(
     '#type' => 'link',
-    '#href' => 'admin/config/content/gathercontent/pages',
-    '#title' => t('Select different pages'),
-    '#prefix' => '<div class="gc_search_pages gc_search_bottom gc_cf"><div class="gc_left">',
+    '#href' => 'admin/config/content/gathercontent/items',
+    '#title' => t('Select different items'),
+    '#prefix' => '<div class="gc_search_items gc_search_bottom gc_cf"><div class="gc_left">',
     '#suffix' => '</div>',
   );
-  $form['page_options_footer']['submit'] = array(
+  $form['item_options_footer']['submit'] = array(
     '#type' => 'submit',
-    '#value' => t('Import selected pages'),
+    '#value' => t('Import selected items'),
     '#prefix' => '<div class="gc_right">',
     '#suffix' => '</div></div>',
   );
@@ -106,26 +106,26 @@ function gathercontent_pages_import_form($form, &$form_state) {
 }
 
 /**
- * Form theme handler for gathercontent_pages_import_form().
+ * Form theme handler for gathercontent_item_import_form().
  */
-function theme_gathercontent_pages_import_form($variables) {
+function theme_gathercontent_item_import_form($variables) {
   $obj = gathercontent_get_obj();
 
   $form = $variables['form'];
 
   $rows = array();
 
-  foreach (element_children($form['page_list']) as $id) {
+  foreach (element_children($form['item_list']) as $id) {
 
     $rows[] = array(
       'data' => array(
-        drupal_render($form['page_list'][$id]['page_state']),
+        drupal_render($form['item_list'][$id]['item_state']),
         array(
-          'data' => drupal_render($form['page_list'][$id]['page_name']),
-          'class' => 'page-name',
+          'data' => drupal_render($form['item_list'][$id]['item_name']),
+          'class' => 'item-name',
         ),
         array(
-          'data' => drupal_render($form['pages'][$id]),
+          'data' => drupal_render($form['items'][$id]),
           'class' => 'gc_checkbox',
         ),
       ),
@@ -144,7 +144,7 @@ function theme_gathercontent_pages_import_form($variables) {
         ),
       ),
       'no_striping' => TRUE,
-      'data-page-id' => $id,
+      'data-item-id' => $id,
       'data-parent-id' => $obj->getParentId($id),
     );
   }
@@ -152,23 +152,23 @@ function theme_gathercontent_pages_import_form($variables) {
   $header = array(
     array(
       'data' => '',
-      'class' => 'page-state',
+      'class' => 'item-state',
     ),
     array(
-      'data' => t('Pages'),
-      'class' => 'page-name',
+      'data' => t('Items'),
+      'class' => 'item-name',
     ),
     '<input type="checkbox" class="gc_toggle_all" />'
   );
 
   $output = drupal_render($form['modals']);
-  $output .= drupal_render($form['page_header']);
-  $output .= drupal_render($form['page_options']);
+  $output .= drupal_render($form['item_header']);
+  $output .= drupal_render($form['item_options']);
   $output .= theme('table', array(
     'header' => $header,
     'rows' => $rows,
-    'attributes' => array('id' => 'gc_pagelist'),
-    'empty' => t('No pages available.')
+    'attributes' => array('id' => 'gc_itemlist'),
+    'empty' => t('No items available.')
   ));
   $output .= drupal_render_children($form);
   return $output;
@@ -204,17 +204,17 @@ function _gathercontent_add_terms($vocab, $terms) {
 }
 
 /**
- * AJAX function to process individual pages.
+ * AJAX function to process individual items.
  */
-function gathercontent_import_page() {
+function gathercontent_import_item() {
   $obj = gathercontent_get_obj();
-  $out = array('error' => t('Verification failed, please refreshing the page and try again.'));
-  if (isset($_POST['gc']) && isset($_POST['gc']['page_id'])) {
+  $out = array('error' => t('Verification failed, please refreshing the item and try again.'));
+  if (isset($_POST['gc']) && isset($_POST['gc']['item_id'])) {
     $gc = $_POST['gc'];
-    $page_id = $gc['page_id'];
+    $item_id = $gc['item_id'];
     $obj->getPostTypes();
     $project_id = variable_get('gathercontent_project_id');
-    $pages = variable_get('gathercontent_saved_pages');
+    $items = variable_get('gathercontent_saved_items');
     $file_counter = 0;
     $total_files = 0;
     $files = array(
@@ -225,13 +225,13 @@ function gathercontent_import_page() {
     if ($_POST['cur_counter'] == 0) {
       variable_set('gathercontent_media_files', array());
     }
-    if (is_array($pages) && isset($pages[$project_id]) && isset($pages[$project_id]['pages'][$page_id])) {
-      extract($pages[$project_id]);
-      $obj->getFiles($page_id);
+    if (is_array($items) && isset($items[$project_id]) && isset($items[$project_id]['items'][$item_id])) {
+      extract($items[$project_id]);
+      $obj->getFiles($item_id);
 
-      $page = $pages[$page_id];
+      $item = $items[$item_id];
 
-      $config = $obj->getFieldConfig($page, $obj->val($obj->files, $page_id, array()));
+      $config = $obj->getFieldConfig($item, $obj->val($obj->files, $item_id, array()));
 
       $fields = $obj->val($gc, 'fields', array());
 
@@ -279,10 +279,11 @@ function gathercontent_import_page() {
       }
 
       if ($save_settings['overwrite'] == 0) {
-        $entity->{$label_key}->set($page->name);
+        $entity->{$label_key}->set($item->name);
       }
 
       $field_values = array();
+      $redirects = array();
 
       if (isset($gc['fields'])) {
         foreach ($gc['fields'] as $info) {
@@ -307,7 +308,14 @@ function gathercontent_import_page() {
 
           $save_settings['fields'][$tab . '_' . $field_name] = $map_to;
 
-          if ($map_to != 'title') {
+          $sub_field = 'value';
+          $regex = '/\[(.+)\]$/';
+          if (preg_match($regex, $map_to, $matches)) {
+            $sub_field = $matches[1];
+            $map_to = preg_replace($regex, '', $map_to);
+          }
+
+          if ($map_to != 'title' && $map_to != 'metatags' && $map_to != 'redirect') {
             $cur_field = $entity->{$map_to}->info();
             if ($field['type'] == 'files') {
               if (is_array($field['value']) && count($field['value']) > 0) {
@@ -350,7 +358,28 @@ function gathercontent_import_page() {
             }
           }
 
-          if ($map_to == 'title') {
+          if ($map_to === 'redirect') {
+            foreach(array_map('trim', explode(',', strip_tags($field['value']))) as $redirect) {
+              if (url_is_external($redirect)) {
+                $redirect = parse_url($redirect, PHP_URL_PATH);
+              }
+
+              $uri = ltrim($redirect, '/');
+
+              if (!valid_url($uri)) {
+                continue;
+              }
+
+              $redirects[] = $uri;
+            }
+          }
+          else if ($map_to === 'metatags') {
+            $raw_entity = $entity->value();
+            $raw_entity->metatags = array(LANGUAGE_NONE => array(
+              'title' => $field,
+            ));
+          }
+          else if ($map_to == 'title') {
             $entity->{$label_key}->set(strip_tags($field['value']));
           }
           elseif (!empty($field['value'])) {
@@ -470,17 +499,17 @@ function gathercontent_import_page() {
               }
               if (!isset($field_values[$map_to])) {
                 $field_values[$map_to] = array(
-                  'value' => '',
+                  $sub_field => '',
                   'format' => $save_settings['filter'],
                 );
               }
 
-              $val = $field_values[$map_to]['value'];
+              $val = $field_values[$map_to][$sub_field];
               if (!empty($val)) {
                 $val .= "\n";
               }
               $val .= $field['value'];
-              $field_values[$map_to]['value'] = $val;
+              $field_values[$map_to][$sub_field] = $val;
             }
             else {
               $field['value'] = strip_tags($field['value']);
@@ -497,6 +526,24 @@ function gathercontent_import_page() {
       $save_settings['overwrite'] = $entity->getIdentifier();
 
       $entity_uri = entity_uri($entity->type(), $entity->value());
+
+      if (module_exists('redirect')) {
+        foreach ($redirects as $uri) {
+          $redirect = new stdClass();
+          redirect_object_prepare($redirect);
+          $redirect->source = $uri;
+          $redirect->redirect = $entity_uri['path'];
+          $redirect->language = LANGUAGE_NONE;
+          // Check if the redirect exists before saving.
+          $hash = redirect_hash($redirect);
+
+          if (!redirect_load_by_hash($hash)) {
+            redirect_save($redirect);
+          }
+        }
+      }
+
+      $mlid = gathercontent_create_menu_item($entity->title->value(), $save_settings['parent_id'], $entity_uri['path']);
       $mlid = gathercontent_create_menu_item($entity->{$label_key}->value(), $save_settings['parent_id'], $entity_uri['path']);
 
       $media = variable_get('gathercontent_media_files');
@@ -520,13 +567,16 @@ function gathercontent_import_page() {
         $cur_settings[$project_id] = array();
       }
 
-      $cur_settings[$project_id][$page_id] = $save_settings;
+      $cur_settings[$project_id][$item_id] = $save_settings;
       variable_set('gathercontent_saved_settings', $cur_settings);
 
       $out = array(
         'success' => TRUE,
-        'page_percent' => $obj->percent(++$_POST['cur_counter'], $_POST['total']),
+        'item_percent' => $obj->percent(++$_POST['cur_counter'], $_POST['total']),
         'redirect_url' => ($media['total_files'] > 0 ? 'media' : 'finished'),
+        'item_id' => $item_id,
+        'new_item_id'   => $mlid,
+        'new_item_html' => '<li data-post-type="' . $save_settings['post_type'] . '"><a href="#" title="' . check_plain($entity->title->value()) . '" data-value="' . $mlid . '">' . check_plain($entity->title->value()) . '</a></li>',
         'page_id' => $page_id,
         'new_page_id'   => $mlid,
         'new_page_html' => '<li data-post-type="' . $save_settings['post_type'] . '"><a href="#" title="' . check_plain($entity->{$label_key}->value()) . '" data-value="' . $mlid . '">' . check_plain($entity->{$label_key}->value()) . '</a></li>',
@@ -534,13 +584,13 @@ function gathercontent_import_page() {
     }
     else {
       $out = array(
-        'error' => t('There was a problem importing the page, please refresh and try again.'),
+        'error' => t('There was a problem importing the item, please refresh and try again.'),
       );
     }
   }
   else {
     $out = array(
-      'error' => t('There was a problem importing the page, please refresh and try again.'),
+      'error' => t('There was a problem importing the item, please refresh and try again.'),
     );
   }
   echo json_encode($out);
@@ -551,7 +601,7 @@ function gathercontent_import_page() {
  * Create a menu link for importing hierarchy
  */
 function gathercontent_create_menu_item($link_title, $parent, $link_path) {
-  if($parent != '0' && $parent != '_imported_page_') {
+  if($parent != '0' && $parent != '_imported_item_') {
     $menu = explode(':', $parent);
     if(count($menu) > 1) {
       $link = array(

@@ -18,7 +18,7 @@ function gathercontent_project_form($form, &$form_state) {
       if (is_null($default)) {
         $default = $id;
       }
-      $options[$id] = $info['name'] . ' &mdash; <span class="page-count">' . $info['page_count'] . ' ' . $info['word'] . '</span>';
+      $options[$id] = $info['name'] . ' &mdash; <span class="item-count">' . $info['item_count'] . ' ' . $info['word'] . '</span>';
     }
     $form['header'] = array(
       '#prefix' => '<div class="gc_cf">',
@@ -43,6 +43,17 @@ function gathercontent_project_form($form, &$form_state) {
     );
   }
   else {
+    $form['header'] = array(
+      '#prefix' => '<div class="gc_cf">',
+      '#markup' => '<h2 class="gc_left">' . t('No projects found') . '</h2>',
+    );
+    $form['link'] = array(
+      '#type' => 'link',
+      '#title' => t('Account settings'),
+      '#href' => 'admin/config/content/gathercontent/login',
+      '#prefix' => '<div class="gc_right">',
+      '#suffix' => '</div></div>',
+    );
     drupal_set_message(t('No projects found'), 'error');
   }
   return $form;
@@ -53,13 +64,13 @@ function gathercontent_project_form($form, &$form_state) {
  */
 function gathercontent_project_form_submit($form, &$form_state) {
   variable_set('gathercontent_project_id', $form_state['values']['gathercontent_project_id']);
-  drupal_goto('admin/config/content/gathercontent/pages');
+  drupal_goto('admin/config/content/gathercontent/items');
 }
 
 /**
- * Select project by ID and redirects to page selection.
+ * Select project by ID and redirects to item selection.
  */
 function gathercontent_set_project_id($project_id = 0) {
   variable_set('gathercontent_project_id', $project_id);
-  drupal_goto('admin/config/content/gathercontent/pages');
+  drupal_goto('admin/config/content/gathercontent/items');
 }
