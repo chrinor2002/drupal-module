@@ -94,8 +94,8 @@ function gathercontent_ajax_media_download() {
       $file = array_shift($cur_post['files'][0]);
       $is_file_field = $file['is_file_field'];
       $field_type = $file['field_type'];
-      $node = node_load($post_id);
-      $entity = entity_metadata_wrapper('node', $node);
+      $entity_raw = entity_load_single($file['entity_type'], $post_id);
+      $entity = entity_metadata_wrapper($file['entity_type'], $entity_raw);
 
       if (!$more_than_1) {
         array_shift($cur_post['files']);

@@ -257,6 +257,12 @@ function gathercontent_import_item() {
           $create_new = FALSE;
           $old_entity = array_shift($loaded_entities);
           $entity = entity_metadata_wrapper($post_type[0], $old_entity);
+          if($post_type[0] == 'taxonomy_term'){
+            // normally we would use the entity wrapper here, but it seems like
+            // format was missed when setting up entity properties for taxonomy_term
+            //$entity->format = $save_settings['filter'];
+            $old_entity->format = $save_settings['filter'];
+          }
         }
       }
       if ($create_new === TRUE) {
@@ -267,9 +273,9 @@ function gathercontent_import_item() {
           $values[$entity_info['entity keys']['bundle']] = $post_type[1];
         }
         if($post_type[0] == 'taxonomy_term'){
-          $vocab_info = entity_get_info('taxonomy_vocabulary');
           $v = taxonomy_vocabulary_machine_name_load($post_type[1]);
-          $values['vid'] = $v->{$vocab_info['entity keys']['id']};
+          $v_wraper = entity_metadata_wrapper('taxonomy_vocabulary', $v);
+          $values['vid'] = $v_wraper->getIdentifier();
           $values['format'] = $save_settings['filter'];
         }
         $e = entity_create($post_type[0], $values);
@@ -287,6 +293,7 @@ function gathercontent_import_item() {
 
       if (isset($gc['fields'])) {
         foreach ($gc['fields'] as $info) {
+
           $tab = $info['field_tab'];
           $map_to = $info['map_to'];
           $field_name = $info['field_name'];
@@ -511,6 +518,10 @@ function gathercontent_import_item() {
               $val .= $field['value'];
               $field_values[$map_to][$sub_field] = $val;
             }
+            elseif ($cur_field['type'] == 'text') {
+              // the entity property setter should take care of stripping if needed
+              $entity->{$map_to}->set($field['value']);
+            }
             else {
               $field['value'] = strip_tags($field['value']);
               $entity->{$map_to}->set($field['value']);
@@ -543,8 +554,7 @@ function gathercontent_import_item() {
         }
       }
 
-      $mlid = gathercontent_create_menu_item($entity->title->value(), $save_settings['parent_id'], $entity_uri['path']);
-      $mlid = gathercontent_create_menu_item($entity->{$label_key}->value(), $save_settings['parent_id'], $entity_uri['path']);
+      $mlid = gathercontent_create_menu_item($entity->label(), $save_settings['parent_id'], $entity_uri['path']);
 
       $media = variable_get('gathercontent_media_files');
       if (!isset($media['total_files'])) {
@@ -576,10 +586,7 @@ function gathercontent_import_item() {
         'redirect_url' => ($media['total_files'] > 0 ? 'media' : 'finished'),
         'item_id' => $item_id,
         'new_item_id'   => $mlid,
-        'new_item_html' => '<li data-post-type="' . $save_settings['post_type'] . '"><a href="#" title="' . check_plain($entity->title->value()) . '" data-value="' . $mlid . '">' . check_plain($entity->title->value()) . '</a></li>',
-        'page_id' => $page_id,
-        'new_page_id'   => $mlid,
-        'new_page_html' => '<li data-post-type="' . $save_settings['post_type'] . '"><a href="#" title="' . check_plain($entity->{$label_key}->value()) . '" data-value="' . $mlid . '">' . check_plain($entity->{$label_key}->value()) . '</a></li>',
+        'new_item_html' => '<li data-post-type="' . $save_settings['post_type'] . '"><a href="#" title="' . check_plain($entity->label()) . '" data-value="' . $mlid . '">' . check_plain($entity->label()) . '</a></li>',
       );
     }
     else {
